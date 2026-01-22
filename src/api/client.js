@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const client = axios.create({
-  baseURL: 'https://help-center-backend-4wuz.onrender.com', // Adjust base URL as needed
+  baseURL: 'https://help-center-backend-4wuz.onrender.com/api', // Adjust base URL as needed
   headers: {
     'Content-Type': 'application/json',
   },
