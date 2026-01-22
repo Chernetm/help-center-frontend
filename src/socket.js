@@ -65,5 +65,5 @@ class WSWrapper {
     }
 }
 
-const socket = new WSWrapper("ws://https://help-center-backend-4wuz.onrender.com/ws");
+const socket = new WSWrapper("wss://help-center-backend-4wuz.onrender.com/ws");
 export default socket;
