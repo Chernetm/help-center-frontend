@@ -49,28 +49,37 @@ export default function AdminLogin() {
     //     }
     // };
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError("");
-        setLoading(true);
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-        try {
-            const data = await loginAdmin({ email, password });
+  try {
+    const data = await loginAdmin({ email, password });
 
-            // Store token (REMOVED: Now handled by httpOnly cookies)
-            // localStorage.setItem("adminToken", data.token);
-            localStorage.setItem("adminId", data.user.id);
+    // Store user info
+    localStorage.setItem("adminId", data.user.id);
+    localStorage.setItem("role", data.user.role);
 
-            navigate("/agent"); // Redirect to a dashboard or order status
-        } catch (err) {
-            if (err.response?.status === 404 || err.response?.status === 401) {
-                setError("Invalid credentials. Please check your email or password.");
-            } else {
-                setError("Login failed. Please try again.");
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Role-based navigation
+    if (data.user.role === "super-admin") {
+      navigate("/dashboard");
+    } else if (data.user.role === "admin" || data.user.role === "agent") {
+      navigate("/agent");
+    } else {
+      // fallback (optional)
+      navigate("/");
+    }
+
+  } catch (err) {
+    if (err.response?.status === 404 || err.response?.status === 401) {
+      setError("Invalid credentials. Please check your email or password.");
+    } else {
+      setError("Login failed. Please try again.");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
