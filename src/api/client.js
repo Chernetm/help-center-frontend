@@ -22,11 +22,15 @@ client.interceptors.request.use(
     // Prioritize specific tokens based on the request URL
     if (config.url?.includes('/customer')) {
       token = getCookie('customerToken') || localStorage.getItem('customerToken');
+    } else if (config.url?.includes('/admin') || config.url?.includes('/agent') || config.url?.includes('/ticket')) {
+      token = getCookie('adminToken') || localStorage.getItem('adminToken');
     }
 
     // Fallback logic: check generic 'token', then specific tokens if not yet found
     if (!token) {
-      token = getCookie('token') || localStorage.getItem('token') || getCookie('customerToken') || localStorage.getItem('customerToken');
+      token = getCookie('token') || localStorage.getItem('token') ||
+        getCookie('adminToken') || localStorage.getItem('adminToken') ||
+        getCookie('customerToken') || localStorage.getItem('customerToken');
     }
 
     if (token) {

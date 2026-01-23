@@ -8,7 +8,6 @@ export default function OrderForm() {
     const [formData, setFormData] = useState({
         orderId: "",
         status: "pending",
-        department: "",
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
@@ -28,12 +27,11 @@ export default function OrderForm() {
             await createOrder({
                 id: formData.orderId,
                 status: formData.status,
-                department: formData.department,
-                userId: 1, // TODO: Get from context or prop
+                urgency: "normal", // or add urgency field to form if needed/default
             });
 
             setMessage({ type: "success", text: "Order created successfully!" });
-            setFormData({ orderId: "", status: "pending", department: "" });
+            setFormData({ orderId: "", status: "pending" });
         } catch (error) {
             console.error(error);
             setMessage({ type: "error", text: "Failed to create order." });
@@ -99,26 +97,7 @@ export default function OrderForm() {
                                 </div>
                             </div>
 
-                            {/* Department */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                                    Department <span className="text-red-500">*</span>
-                                </label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-purple-500 transition-colors">
-                                        <Layers size={18} />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        name="department"
-                                        value={formData.department}
-                                        onChange={handleChange}
-                                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all placeholder:text-gray-400 font-medium"
-                                        placeholder="e.g. Printing"
-                                        required
-                                    />
-                                </div>
-                            </div>
+
                         </div>
 
                         {/* Status */}
