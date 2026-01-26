@@ -37,6 +37,7 @@ function App() {
       <Route element={<ProtectedAdminRoute />}>
         <Route path="/agent" element={<AdminChat />} />
         <Route path="/case-register" element={<CaseRegister />} />
+        <Route path="/admin-orders" element={<AdminOrders />} />
         <Route path="/dashboard">
           <Route index element={<DashboardSelector />} />
           <Route path="admin" element={<AdminDashboard />} />
