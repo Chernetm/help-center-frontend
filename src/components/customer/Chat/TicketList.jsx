@@ -64,13 +64,16 @@ export default function TicketList({ tickets, selectedTicket, onSelectTicket, is
                                     </h3>
                                     <div className="flex flex-col items-end ml-2">
                                         <span className={clsx("text-xs whitespace-nowrap", ticket.unreadCount > 0 ? "text-indigo-500 font-medium" : "text-gray-400")}>
-                                            {formatTelegramDate(ticket.updatedAt)}
+                                            {formatTelegramDate(ticket.chats && ticket.chats.length > 0 ? ticket.chats[ticket.chats.length - 1].createdAt : ticket.updatedAt)}
                                         </span>
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center mt-0.5">
                                     <div className="text-sm text-gray-500 truncate flex-1 pr-2">
-                                        {ticket.case.name}
+                                        {ticket.isClosed
+                                            ? <span className="text-red-500 font-medium text-[10px] border border-red-200 bg-red-50 px-1 rounded">Closed</span>
+                                            : (ticket.chats && ticket.chats.length > 0 ? ticket.chats[ticket.chats.length - 1].message : ticket.case.name)
+                                        }
                                     </div>
                                     {ticket.unreadCount > 0 && (
                                         <span className="min-w-[20px] h-5 flex items-center justify-center bg-indigo-500 text-white text-[10px] font-bold rounded-full px-1.5 shadow-sm">
@@ -78,11 +81,6 @@ export default function TicketList({ tickets, selectedTicket, onSelectTicket, is
                                         </span>
                                     )}
                                 </div>
-                                {ticket.status === 'closed' && (
-                                    <span className="inline-block mt-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-medium border border-gray-200">
-                                        Closed
-                                    </span>
-                                )}
                             </div>
                         </motion.div>
                     ))

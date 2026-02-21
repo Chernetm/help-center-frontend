@@ -14,6 +14,7 @@ import {
 import TicketList from './TicketList';
 import ChatWindow from './ChatWindow';
 import CaseSelectorModal from './CaseSelectorModal';
+import { uploadToCloudinary } from '../../../utils/cloudinaryUpload';
 
 export default function CustomerChat() {
 
@@ -65,6 +66,11 @@ export default function CustomerChat() {
 
                 setTickets(processedTickets);
                 setCases(casesData || []);
+
+                // Join all ticket rooms to receive real-time unread count updates
+                processedTickets.forEach(t => {
+                    socket.emit("joinTicket", t.id);
+                });
             } catch (err) {
                 console.error("Init load failed:", err);
             } finally {
@@ -124,6 +130,11 @@ export default function CustomerChat() {
         socket.emit("joinTicket", selectedTicket.id);
         console.log("CustomerChat: Emitted joinTicket for", selectedTicket.id);
     }, [selectedTicket?.id]);
+
+    const ticketsRef = React.useRef([]);
+    useEffect(() => {
+        ticketsRef.current = tickets;
+    }, [tickets]);
 
     // ---------------- SOCKET LISTENERS ----------------
     useEffect(() => {
@@ -199,21 +210,35 @@ export default function CustomerChat() {
         };
 
         const handleConnect = () => {
-            const currentSelected = selectedTicketRef.current;
-            if (currentSelected?.id) {
-                socket.emit("joinTicket", currentSelected.id);
+            console.log("CustomerChat: Socket connected/reconnected");
+            // Re-join all ticket rooms
+            ticketsRef.current.forEach(t => {
+                socket.emit("joinTicket", t.id);
+            });
+            console.log("CustomerChat: Re-joined all ticket rooms");
+        };
+
+        const handleTicketClosed = (ticketId) => {
+            console.log("CustomerChat: Ticket closed", ticketId);
+            setTickets(prev => prev.map(t =>
+                Number(t.id) === Number(ticketId) ? { ...t, status: 'closed' } : t
+            ));
+            if (selectedTicketRef.current && Number(selectedTicketRef.current.id) === Number(ticketId)) {
+                setSelectedTicket(prev => ({ ...prev, status: 'closed' }));
             }
         };
 
         socket.on("newMessage", handleNewMessage);
         socket.on("messagesRead", handleMessagesRead);
         socket.on("adminStatusChanged", handleAdminStatusChanged);
+        socket.on("ticketClosed", handleTicketClosed);
         socket.on("connect", handleConnect);
 
         return () => {
             socket.off("newMessage", handleNewMessage);
             socket.off("messagesRead", handleMessagesRead);
             socket.off("adminStatusChanged", handleAdminStatusChanged);
+            socket.off("ticketClosed", handleTicketClosed);
             socket.off("connect", handleConnect);
         };
     }, []); // Only once
@@ -246,17 +271,35 @@ export default function CustomerChat() {
     };
 
     // ---------------- SEND MESSAGE ----------------
-    const handleSendMessage = async () => {
-        if (!newMessage.trim() || !selectedTicket) return;
+    const handleSendMessage = async (msgText, file) => {
+        if (!selectedTicket || (!msgText?.trim() && !file)) return;
 
-        const msgContent = newMessage;
         const tempId = Date.now();
+        let mediaUrl = "";
+        let mediaType = "";
+        let audioDuration = 0;
+
+        if (file) {
+            try {
+                const uploadRes = await uploadToCloudinary(file);
+                mediaUrl = uploadRes.secure_url;
+                mediaType = file.type.startsWith("audio") ? "audio" : "image";
+                audioDuration = uploadRes.duration || 0;
+            } catch (err) {
+                console.error("Upload failed", err);
+                return;
+            }
+        }
+
         const optimisticMsg = {
             id: null,
             tempId,
             ticketId: selectedTicket.id,
             senderType: "customer",
-            message: msgContent,
+            message: msgText,
+            mediaUrl,
+            mediaType,
+            audioDuration,
             createdAt: new Date().toISOString(),
             isRead: false
         };
@@ -269,14 +312,17 @@ export default function CustomerChat() {
             await apiSendMessage({
                 ticketId: selectedTicket.id,
                 senderType: "customer",
-                message: msgContent,
+                message: msgText,
+                mediaUrl,
+                mediaType,
+                audioDuration,
                 tempId // Pass tempId so backend can echo it back for matching
             });
         } catch (err) {
             console.error("Send failed", err);
             // Remove optimistic message on failure
             setMessages(prev => prev.filter(m => m.tempId !== tempId));
-            setNewMessage(msgContent);
+            setNewMessage(msgText);
         }
     };
 

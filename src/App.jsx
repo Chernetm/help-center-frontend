@@ -9,7 +9,8 @@ import AdminChat from "./components/admin/Chat/AdminChat";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import AdminOrders from "./components/admin/Orders/OrderForm";
+import OrderForm from "./components/admin/Orders/OrderForm";
+import OrderList from "./components/admin/Orders/OrderList";
 import OrderLookup from "./components/customer/Orders/OrderLookup";
 import ProtectedCustomerRoute from "./components/ProtectedCustomerRoute";
 import AdminLogin from "./pages/AdminLogin";
@@ -37,14 +38,15 @@ function App() {
       <Route element={<ProtectedAdminRoute />}>
         <Route path="/agent" element={<AdminChat />} />
         <Route path="/case-register" element={<CaseRegister />} />
-        <Route path="/admin-orders" element={<AdminOrders />} />
+        <Route path="/admin-orders" element={<OrderList />} />
+        <Route path="/admin-orders/new" element={<OrderForm />} />
         <Route path="/dashboard">
           <Route index element={<DashboardSelector />} />
           <Route path="admin" element={<AdminDashboard />} />
           <Route path="super" element={<SuperAdminDashboard />} />
-          
+
         </Route>
-        
+
       </Route>
 
 

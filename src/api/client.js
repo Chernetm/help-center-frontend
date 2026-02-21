@@ -1,7 +1,8 @@
 import axios from 'axios';
-
+import { isTokenExpired, clearAuthData } from '../utils/authUtils';
+//https://help-center-backend-4wuz.onrender.com/api
 const client = axios.create({
-  baseURL: 'https://help-center-backend-4wuz.onrender.com/api', // Adjust base URL as needed
+  baseURL: 'http://localhost:8090/api', // Adjust base URL as needed
   headers: {
     'Content-Type': 'application/json',
   },
@@ -26,7 +27,7 @@ client.interceptors.request.use(
       token = getCookie('adminToken') || localStorage.getItem('adminToken');
     }
 
-    // Fallback logic: check generic 'token', then specific tokens if not yet found
+    // Fallback logic
     if (!token) {
       token = getCookie('token') || localStorage.getItem('token') ||
         getCookie('adminToken') || localStorage.getItem('adminToken') ||
@@ -34,11 +35,34 @@ client.interceptors.request.use(
     }
 
     if (token) {
+      if (isTokenExpired(token)) {
+        clearAuthData();
+        // Optional: Redirect to login if needed, or let the 401 handle it naturally 
+        // but keeping it clean prevents sending bad tokens.
+        // window.location.href = '/login'; // Aggressive redirect
+        return Promise.reject(new Error("Token expired"));
+      }
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle 401s globally
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Clear auth data if 401 is received (token invalid/expired)
+      clearAuthData();
+
+      // Determine where to redirect based on the URL or previous state
+      // For now, we can redirect to the main login or home
+      // window.location.href = '/login'; 
+    }
     return Promise.reject(error);
   }
 );

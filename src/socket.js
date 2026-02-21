@@ -65,5 +65,11 @@ class WSWrapper {
     }
 }
 
-const socket = new WSWrapper("wss://help-center-backend-4wuz.onrender.com/ws");
+const socketUrl = import.meta.env.VITE_WS_URL || "ws://localhost:8090/ws";
+console.log("Initializing WS with URL:", socketUrl);
+const socket = new WSWrapper(socketUrl);
+
 export default socket;
+
+
+//help-center-backend-4wuz.onrender.com
