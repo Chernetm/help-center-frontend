@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Lock,
@@ -125,6 +125,11 @@ export default function AdminRegister() {
             <p className="text-gray-500 text-sm mt-1">
               Only authorized personnel should register.
             </p>
+            {localStorage.getItem("role") === "super-admin" && (
+              <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:underline mt-2">
+                ← Back to Dashboard
+              </Link>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

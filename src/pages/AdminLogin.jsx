@@ -184,16 +184,6 @@ export default function AdminLogin() {
                         </Button>
                     </form>
 
-                    <div className="mt-8 text-center text-sm text-gray-500">
-                        Don't have an admin account?{" "}
-                        <Link
-                            to="/admin-register"
-                            className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline"
-                        >
-                            Register
-                        </Link>
-                    </div>
-
                     <div className="mt-6 pt-6 border-t border-gray-100 text-center">
                         <Link
                             to="/login"

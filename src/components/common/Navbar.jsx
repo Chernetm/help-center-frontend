@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Home, Search, HelpCircle, LogIn, User, Info, Phone, Lock, LogOut } from "lucide-react";
+import { Menu, X, Home, Search, HelpCircle, LogIn, User, Info, Phone, Lock, LogOut, Shield, Inbox } from "lucide-react";
 import clsx from "clsx";
 import ChangePasswordModal from "./ChangePasswordModal";
 
@@ -10,18 +10,24 @@ export default function Navbar() {
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [authStatus, setAuthStatus] = useState({
         isLogged: false,
-        isAdmin: false
+        isAdmin: false,
+        role: null
     });
     const location = useLocation();
 
     useEffect(() => {
-        const isAdmin = !!localStorage.getItem("adminToken");
-        const isCustomer = !!localStorage.getItem("customerToken");
+        const adminToken = localStorage.getItem("adminToken");
+        const customerToken = localStorage.getItem("customerToken");
+        const role = localStorage.getItem("role");
+
         setAuthStatus({
-            isLogged: isAdmin || isCustomer,
-            isAdmin: isAdmin
+            isLogged: !!adminToken || !!customerToken,
+            isAdmin: !!adminToken,
+            role: role
         });
     }, [location.pathname]);
+    console.log("Auth Status:", authStatus);
+    
 
     const navLinks = [
         { name: "Home", path: "/home", icon: Home },
@@ -79,6 +85,23 @@ export default function Navbar() {
 
                         {authStatus.isLogged ? (
                             <div className="flex items-center gap-4">
+                                {/* Role-based Links */}
+                                {authStatus.isAdmin && (
+                                    <>
+                                        {authStatus?.role?.trim() === "super_admin"? (
+                                            <>
+                                                <Link to="/dashboard" className="text-sm font-bold text-indigo-600 hover:text-indigo-800">Dashboard</Link>
+                                                <Link to="/admin-register" className="text-sm font-medium text-gray-600 hover:text-indigo-600">Create Admin</Link>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Link to="/agent" className="text-sm font-medium text-gray-600 hover:text-indigo-600">Tickets</Link>
+                                                <Link to="/admin-orders" className="text-sm font-medium text-gray-600 hover:text-indigo-600">Orders</Link>
+                                            </>
+                                        )}
+                                    </>
+                                )}
+
                                 <button
                                     onClick={() => setIsPasswordModalOpen(true)}
                                     className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
@@ -99,7 +122,7 @@ export default function Navbar() {
                                 <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-indigo-600">
                                     Login
                                 </Link>
-        
+
                             </>
                         )}
                     </div>
@@ -147,6 +170,34 @@ export default function Navbar() {
                             <div className="h-px bg-gray-100 my-2" />
                             {authStatus.isLogged ? (
                                 <>
+                                    {authStatus.isAdmin && (
+                                        <div className="space-y-1 mb-2">
+                                            {authStatus?.role === "super_admin" ? (
+                                                
+                                                <>
+                                                    <Link to="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-indigo-600 bg-indigo-50 font-bold">
+                                                        <Shield size={18} />
+                                                        <span>Dashboard</span>
+                                                    </Link>
+                                                    <Link to="/admin-register" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                                        <User size={18} />
+                                                        <span>Create Admin</span>
+                                                    </Link>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Link to="/agent" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                                        <Inbox size={18} />
+                                                        <span>Tickets</span>
+                                                    </Link>
+                                                    <Link to="/admin-orders" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                                        <Search size={18} />
+                                                        <span>Orders</span>
+                                                    </Link>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
                                     <button
                                         onClick={() => {
                                             setIsOpen(false);

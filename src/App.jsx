@@ -16,6 +16,7 @@ import ProtectedCustomerRoute from "./components/ProtectedCustomerRoute";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
+import ProtectedSuperAdminRoute from "./components/ProtectedSuperAdminRoute";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import DashboardSelector from "./pages/DashboardSelector";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -33,22 +34,25 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
       <Route path="/customer-register" element={<Register />} />
-      <Route path="/admin-register" element={<AdminRegister />} />
 
+      {/* SUPER ADMIN ONLY RADIUS */}
+      <Route element={<ProtectedSuperAdminRoute />}>
+        <Route path="/admin-register" element={<AdminRegister />} />
+        <Route path="/dashboard/super" element={<SuperAdminDashboard />} />
+         <Route path="admin" element={<AdminDashboard />} />
+         <Route path="/dashboard">
+          <Route index element={<DashboardSelector />} />
+          <Route path="admin" element={<AdminDashboard />} />
+        </Route>
+      </Route>
 
-
+      {/* ADMIN & SUPER ADMIN RADIUS */}
       <Route element={<ProtectedAdminRoute />}>
         <Route path="/agent" element={<AdminChat />} />
         <Route path="/case-register" element={<CaseRegister />} />
         <Route path="/admin-orders" element={<OrderList />} />
         <Route path="/admin-orders/new" element={<OrderForm />} />
-        <Route path="/dashboard">
-          <Route index element={<DashboardSelector />} />
-          <Route path="admin" element={<AdminDashboard />} />
-          <Route path="super" element={<SuperAdminDashboard />} />
-
-        </Route>
-
+        
       </Route>
 
 
