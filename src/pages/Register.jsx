@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Lock, Phone, User, Mail, ArrowRight } from "lucide-react";
+import { Lock, Phone, User, Mail, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { registerCustomer } from "../api/auth";
 import { Button } from "../components/ui/Button";
 
 export default function Register() {
-    const [form, setForm] = useState({ name: "", phone: "", password: "", email: "" });
+    const [form, setForm] = useState({ name: "", phone: "", password: "", confirmPassword: "", email: "" });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -14,9 +16,36 @@ export default function Register() {
 
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+    const getPasswordStrength = (pass) => {
+        let score = 0;
+        if (!pass) return { score: 0, label: "", color: "bg-gray-200" };
+        if (pass.length > 6) score++;
+        if (/[A-Z]/.test(pass)) score++;
+        if (/[0-9]/.test(pass)) score++;
+        if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+        if (score <= 1) return { score: 25, label: "Weak", color: "bg-red-500" };
+        if (score === 2) return { score: 50, label: "Fair", color: "bg-yellow-500" };
+        if (score === 3) return { score: 75, label: "Good", color: "bg-blue-500" };
+        return { score: 100, label: "Strong", color: "bg-emerald-500" };
+    };
+
+    const strength = getPasswordStrength(form.password);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
+
+        if (form.password !== form.confirmPassword) {
+            setError("Passwords do not match");
+            return;
+        }
+
+        if (strength.label === "Weak") {
+            setError("Please use a stronger password");
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -98,12 +127,13 @@ export default function Register() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Email (Optional)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400"><Mail size={18} /></div>
                                 <input
                                     name="email"
                                     type="email"
+                                    required
                                     value={form.email}
                                     onChange={handleChange}
                                     className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -118,13 +148,53 @@ export default function Register() {
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400"><Lock size={18} /></div>
                                 <input
                                     name="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     required
                                     value={form.password}
                                     onChange={handleChange}
-                                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                     placeholder="••••••••"
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-indigo-600"
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                            {form.password && (
+                                <div className="mt-2 text-[10px] uppercase font-bold tracking-wider">
+                                    <div className="flex justify-between mb-1">
+                                        <span className="text-gray-500">Strength: {strength.label}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-1">
+                                        <div className={`${strength.color} h-1 rounded-full transition-all duration-300`} style={{ width: `${strength.score}%` }}></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400"><Lock size={18} /></div>
+                                <input
+                                    name="confirmPassword"
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    required
+                                    value={form.confirmPassword}
+                                    onChange={handleChange}
+                                    className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="••••••••"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-indigo-600"
+                                >
+                                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
                             </div>
                         </div>
 

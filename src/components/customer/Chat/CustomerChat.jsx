@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import socket from '../../../socket';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     getCases,
     getTicketRating,
@@ -37,8 +38,19 @@ export default function CustomerChat() {
     const [userInfo, setUserInfo] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [isMobileView, setIsMobileView] = useState(false);
+    const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
     const [showChatOnMobile, setShowChatOnMobile] = useState(false);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobileView(mobile);
+            // If we switch to desktop, reset mobile specific state
+            if (!mobile) setShowChatOnMobile(false);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     // ---------------- INIT ----------------
@@ -106,7 +118,9 @@ export default function CustomerChat() {
         console.log("Joined ticket room:", selectedTicket.id);
         setMessages(selectedTicket.chats || []);
 
-        if (isMobileView) setShowChatOnMobile(true);
+        if (isMobileView) {
+            setShowChatOnMobile(true);
+        }
 
         const loadRating = async () => {
             try {
@@ -346,35 +360,57 @@ export default function CustomerChat() {
     };
 
     return (
-        <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-gray-100">
+        <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-gray-100 relative">
 
-            <div className={`${(isMobileView && showChatOnMobile) ? 'hidden' : 'block'} h-full w-full md:w-auto`}>
-                <TicketList
-                    tickets={tickets}
-                    selectedTicket={selectedTicket}
-                    onSelectTicket={handleSelectTicket}
-                    isLoading={isLoading}
-                    onOpenNewTicket={() => setIsModalOpen(true)}
-                    isMobileView={isMobileView}
-                />
-            </div>
+            <AnimatePresence mode="wait">
+                {/* List View: Visible on Desktop or on Mobile when no chat is showing */}
+                {(!isMobileView || !showChatOnMobile) && (
+                    <motion.div
+                        key="list"
+                        initial={isMobileView ? { x: -300, opacity: 0 } : false}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={isMobileView ? { x: -300, opacity: 0 } : false}
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                        className={`${isMobileView ? 'absolute inset-0 z-10' : 'relative'} h-full w-full md:w-auto overflow-hidden`}
+                    >
+                        <TicketList
+                            tickets={tickets}
+                            selectedTicket={selectedTicket}
+                            onSelectTicket={handleSelectTicket}
+                            isLoading={isLoading}
+                            onOpenNewTicket={() => setIsModalOpen(true)}
+                            isMobileView={isMobileView}
+                        />
+                    </motion.div>
+                )}
 
-            <div className={`${(isMobileView && !showChatOnMobile) ? 'hidden' : 'block'} flex-1 h-full`}>
-                <ChatWindow
-                    selectedTicket={selectedTicket}
-                    messages={messages}
-                    newMessage={newMessage}
-                    onNewMessageChange={setNewMessage}
-                    onSendMessage={handleSendMessage}
+                {/* Chat View: Visible on Desktop or on Mobile when showing chat */}
+                {(!isMobileView || showChatOnMobile) && (
+                    <motion.div
+                        key="chat"
+                        initial={isMobileView ? { x: 300, opacity: 0 } : false}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={isMobileView ? { x: 300, opacity: 0 } : false}
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                        className={`${isMobileView ? 'absolute inset-0 z-20' : 'flex-1'} h-full bg-[#E4EBEF]`}
+                    >
+                        <ChatWindow
+                            selectedTicket={selectedTicket}
+                            messages={messages}
+                            newMessage={newMessage}
+                            onNewMessageChange={setNewMessage}
+                            onSendMessage={handleSendMessage}
 
-                    // ⭐ PASS RATING
-                    rating={rating}
-                    onSubmitRating={handleRateTicket}
+                            // ⭐ PASS RATING
+                            rating={rating}
+                            onSubmitRating={handleRateTicket}
 
-                    isMobile={isMobileView}
-                    onBack={() => setShowChatOnMobile(false)}
-                />
-            </div>
+                            isMobile={isMobileView}
+                            onBack={() => setShowChatOnMobile(false)}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <CaseSelectorModal
                 isOpen={isModalOpen}

@@ -17,8 +17,8 @@ export default function TicketList({ tickets, selectedTicket, onSelectTicket, is
 
     return (
         <div className={clsx("h-full bg-white flex flex-col relative",
-            // On mobile, if a ticket is selected (and we are in chat view), this list might be hidden by the parent layout
-            "w-full md:w-80 lg:w-96 border-r border-gray-200"
+            // On desktop we keep fixed width, on mobile it fills the container
+            !isMobileView ? "w-full md:w-80 lg:w-96 border-r border-gray-200" : "w-full"
         )}>
             {/* Header */}
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">

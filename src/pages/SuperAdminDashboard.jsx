@@ -12,9 +12,10 @@ import {
   Layers,
   TrendingUp,
   MoreVertical,
-  Filter
+  Filter,
+  Phone
 } from "lucide-react";
-import { getAdmins, getAdminCases, updateAdmin } from "../api/admin";
+import { getAdmins, getAdminCases, updateAdmin, getCustomers, updateCustomerStatus } from "../api/admin";
 
 // Stat Card Component
 const StatCard = ({ icon: Icon, title, value, color, trend }) => (
@@ -37,20 +38,24 @@ const StatCard = ({ icon: Icon, title, value, color, trend }) => (
 
 const SuperAdminDashboard = () => {
   const [admins, setAdmins] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("admins"); // "admins" or "customers"
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [editFormData, setEditFormData] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [adminsData, casesData] = await Promise.all([
+        const [adminsData, casesData, customersData] = await Promise.all([
           getAdmins(),
           getAdminCases(),
+          getCustomers()
         ]);
         setAdmins(adminsData);
+        setCustomers(customersData);
         const uniqueDepartments = [
           ...new Set(casesData.map((c) => c.department).filter(Boolean)),
         ];
@@ -80,6 +85,18 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleCustomerStatusUpdate = async (id, newStatus) => {
+    try {
+      await updateCustomerStatus(id, newStatus);
+      setCustomers((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
+      );
+    } catch (error) {
+      console.error("Error updating customer status:", error);
+      alert("Failed to update customer status");
+    }
+  };
+
   const startEdit = (admin) => {
     setEditingAdmin(admin.uid);
     setEditFormData({
@@ -93,6 +110,12 @@ const SuperAdminDashboard = () => {
     (admin) =>
       admin.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       admin.firstName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredCustomers = customers.filter(
+    (customer) =>
+      customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Computed Stats
@@ -122,7 +145,7 @@ const SuperAdminDashboard = () => {
             <button className="bg-white text-gray-700 px-4 py-2 rounded-xl border border-gray-200 font-medium shadow-sm hover:bg-gray-50 transition">
               Export Report
             </button>
-            <button className="bg-indigo-600 text-white px-5 py-2 rounded-xl font-medium shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition flex items-center">
+            <button className="bg-white text-gray-700 px-4 py-2 rounded-xl border border-gray-200 font-medium shadow-sm hover:bg-gray-50 transition flex items-center">
               <Shield className="w-4 h-4 mr-2" />
               Security Log
             </button>
@@ -153,8 +176,8 @@ const SuperAdminDashboard = () => {
           />
           <StatCard
             icon={Layers}
-            title="Departments"
-            value={totalDepartments}
+            title="Total Customers"
+            value={customers.length}
             color="bg-orange-500"
           />
         </div>
@@ -164,10 +187,22 @@ const SuperAdminDashboard = () => {
 
           {/* Toolbar */}
           <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center">
-              <Users className="w-5 h-5 mr-2 text-indigo-500" />
-              Admin List
-            </h2>
+            <div className="flex bg-gray-100 p-1 rounded-xl">
+              <button
+                onClick={() => setActiveTab("admins")}
+                className={`flex items-center px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === "admins" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Administrators
+              </button>
+              <button
+                onClick={() => setActiveTab("customers")}
+                className={`flex items-center px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === "customers" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Customers
+              </button>
+            </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-none">
@@ -188,139 +223,227 @@ const SuperAdminDashboard = () => {
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50/50 border-b border-gray-100 text-left">
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">User Profile</th>
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Department</th>
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {loading ? (
-                  <tr><td colSpan="5" className="text-center py-12 text-gray-500">Loading data...</td></tr>
-                ) : filteredAdmins.length === 0 ? (
-                  <tr><td colSpan="5" className="text-center py-12 text-gray-500">No admins match your search.</td></tr>
-                ) : (
-                  filteredAdmins.map((admin) => (
-                    <tr key={admin.uid} className="hover:bg-gray-50/80 transition-colors group">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${admin.role === 'super_admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : 'bg-gradient-to-br from-blue-400 to-blue-600'
-                            }`}>
-                            {admin.firstName?.[0]}{admin.lastName?.[0]}
+            {activeTab === "admins" ? (
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100 text-left">
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">User Profile</th>
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Department</th>
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {loading ? (
+                    <tr><td colSpan="5" className="text-center py-12 text-gray-500">Loading data...</td></tr>
+                  ) : filteredAdmins.length === 0 ? (
+                    <tr><td colSpan="5" className="text-center py-12 text-gray-500">No admins match your search.</td></tr>
+                  ) : (
+                    filteredAdmins.map((admin) => (
+                      <tr key={admin.uid} className="hover:bg-gray-50/80 transition-colors group">
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${admin.role === 'super_admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : 'bg-gradient-to-br from-blue-400 to-blue-600'
+                              }`}>
+                              {admin.firstName?.[0]}{admin.lastName?.[0]}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900">{admin.firstName} {admin.lastName}</div>
+                              <div className="text-xs text-gray-500">{admin.email}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-semibold text-gray-900">{admin.firstName} {admin.lastName}</div>
-                            <div className="text-xs text-gray-500">{admin.email}</div>
+                        </td>
+
+                        <td className="py-4 px-6">
+                          {editingAdmin === admin.uid ? (
+                            <select
+                              className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                              value={editFormData.role || ""}
+                              onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
+                            >
+                              <option value="admin">Admin</option>
+                              <option value="super_admin">Super Admin</option>
+                              <option value="agent">Agent</option>
+                            </select>
+                          ) : (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${admin.role === 'super_admin'
+                              ? 'bg-purple-50 text-purple-700 border-purple-100'
+                              : admin.role === 'agent'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                : 'bg-blue-50 text-blue-700 border-blue-100'
+                              }`}>
+                              {admin.role === 'super_admin' && <Shield className="w-3 h-3 mr-1" />}
+                              {admin.role || "N/A"}
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="py-4 px-6">
+                          {editingAdmin === admin.uid ? (
+                            <select
+                              className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                              value={editFormData.department || ""}
+                              onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                            >
+                              <option value="">Select Dept</option>
+                              {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                          ) : (
+                            <div className="flex items-center text-sm text-gray-600">
+                              <Briefcase className="w-4 h-4 mr-2 text-gray-400" />
+                              {admin.department || "Unassigned"}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="py-4 px-6">
+                          {editingAdmin === admin.uid ? (
+                            <select
+                              className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                              value={editFormData.status || ""}
+                              onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                            >
+                              <option value="Active">Active</option>
+                              <option value="Inactive">Inactive</option>
+                              <option value="Suspended">Suspended</option>
+                            </select>
+                          ) : (
+                            <div className="flex items-center">
+                              <span className={`flex w-2.5 h-2.5 rounded-full mr-2 ${admin.status === 'Active' || !admin.status
+                                ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                                : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                                }`}></span>
+                              <span className={`text-sm font-medium ${admin.status === 'Active' || !admin.status ? 'text-gray-700' : 'text-red-600'
+                                }`}>
+                                {admin.status || "Active"}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="py-4 px-6 text-right">
+                          {editingAdmin === admin.uid ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleUpdate(admin.uid)}
+                                className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors shadow-sm"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setEditingAdmin(null)}
+                                className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors shadow-sm"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => startEdit(admin)}
+                              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100 text-left">
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Info</th>
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tickets</th>
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Account ID</th>
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Toggle Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {loading ? (
+                    <tr><td colSpan="5" className="text-center py-12 text-gray-500">Loading data...</td></tr>
+                  ) : filteredCustomers.length === 0 ? (
+                    <tr><td colSpan="5" className="text-center py-12 text-gray-500">No customers match your search.</td></tr>
+                  ) : (
+                    filteredCustomers.map((customer) => (
+                      <tr key={customer.id} className="hover:bg-gray-50/80 transition-colors group">
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-md">
+                              {customer.name?.[0]?.toUpperCase() || "C"}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900">{customer.name}</div>
+                              <div className="text-xs text-gray-500">Customer</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="py-4 px-6">
-                        {editingAdmin === admin.uid ? (
-                          <select
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                            value={editFormData.role || ""}
-                            onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
-                          >
-                            <option value="admin">Admin</option>
-                            <option value="super_admin">Super Admin</option>
-                            <option value="agent">Agent</option>
-                          </select>
-                        ) : (
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${admin.role === 'super_admin'
-                            ? 'bg-purple-50 text-purple-700 border-purple-100'
-                            : admin.role === 'agent'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                              : 'bg-blue-50 text-blue-700 border-blue-100'
-                            }`}>
-                            {admin.role === 'super_admin' && <Shield className="w-3 h-3 mr-1" />}
-                            {admin.role || "N/A"}
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="py-4 px-6">
-                        {editingAdmin === admin.uid ? (
-                          <select
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                            value={editFormData.department || ""}
-                            onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
-                          >
-                            <option value="">Select Dept</option>
-                            {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-                          </select>
-                        ) : (
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Briefcase className="w-4 h-4 mr-2 text-gray-400" />
-                            {admin.department || "Unassigned"}
+                        <td className="py-4 px-6">
+                          <div className="text-sm">
+                            <div className="text-gray-900">{customer.email}</div>
+                            <div className="text-gray-500 flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3" />
+                              {customer.phoneNumber || "No phone"}
+                            </div>
                           </div>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="py-4 px-6">
-                        {editingAdmin === admin.uid ? (
-                          <select
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                            value={editFormData.status || ""}
-                            onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
-                          >
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
-                            <option value="Suspended">Suspended</option>
-                          </select>
-                        ) : (
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-2">
+                            <span className={`flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold ${customer.ticketCount > 0
+                              ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                              : "bg-gray-50 text-gray-400 border border-gray-100"
+                              }`}>
+                              {customer.ticketCount || 0}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-6">
+                          <span className="text-xs font-mono text-gray-400 bg-gray-50 px-2 py-1 rounded">#{customer.id}</span>
+                        </td>
+
+                        <td className="py-4 px-6">
                           <div className="flex items-center">
-                            <span className={`flex w-2.5 h-2.5 rounded-full mr-2 ${admin.status === 'Active' || !admin.status
+                            <span className={`flex w-2.5 h-2.5 rounded-full mr-2 ${customer.status === 'active' || !customer.status
                               ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
                               : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
                               }`}></span>
-                            <span className={`text-sm font-medium ${admin.status === 'Active' || !admin.status ? 'text-gray-700' : 'text-red-600'
-                              }`}>
-                              {admin.status || "Active"}
+                            <span className={`text-sm font-medium ${customer.status === 'active' || !customer.status ? 'text-gray-700' : 'text-red-600'
+                              } capitalize`}>
+                              {customer.status || "active"}
                             </span>
                           </div>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="py-4 px-6 text-right">
-                        {editingAdmin === admin.uid ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleUpdate(admin.uid)}
-                              className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors shadow-sm"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => setEditingAdmin(null)}
-                              className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors shadow-sm"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
+                        <td className="py-4 px-6 text-right">
                           <button
-                            onClick={() => startEdit(admin)}
-                            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                            onClick={() => handleCustomerStatusUpdate(customer.id, customer.status === "active" ? "inactive" : "active")}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${customer.status === "active"
+                              ? "bg-red-50 text-red-600 hover:bg-red-100"
+                              : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                              }`}
                           >
-                            <Edit2 className="w-4 h-4" />
+                            {customer.status === "active" ? "Deactivate" : "Activate"}
                           </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Pagination (Visual only for now) */}
           <div className="p-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
-            <span>Showing {filteredAdmins.length} admins</span>
+            <span>Showing {activeTab === "admins" ? filteredAdmins.length : filteredCustomers.length} {activeTab}</span>
             <div className="flex gap-2">
               <button className="px-3 py-1 border rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>Previous</button>
               <button className="px-3 py-1 border rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>Next</button>

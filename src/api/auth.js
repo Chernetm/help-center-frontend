@@ -23,3 +23,25 @@ export const registerCustomer = async (customerData) => {
     const response = await client.post('/customer/register', customerData);
     return response.data;
 };
+
+// Forgot Password
+export const forgotPasswordAdmin = async (email) => {
+    const response = await client.post('/admin/forgot-password', { email });
+    return response.data;
+};
+
+export const forgotPasswordCustomer = async (email) => {
+    const response = await client.post('/customer/forgot-password', { email });
+    return response.data;
+};
+
+// Change Password
+export const changePasswordAdmin = async (newPassword) => {
+    const response = await client.post('/admin/change-password', { newPassword });
+    return response.data;
+};
+
+export const changePasswordCustomer = async (newPassword) => {
+    const response = await client.post('/customer/change-password', { newPassword });
+    return response.data;
+};

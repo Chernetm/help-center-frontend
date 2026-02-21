@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import DashboardSelector from "./pages/DashboardSelector";
+import ForgotPassword from "./pages/ForgotPassword";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
       <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<Login />} />
       <Route path="/admin-login" element={<AdminLogin />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
       <Route path="/customer-register" element={<Register />} />
       <Route path="/admin-register" element={<AdminRegister />} />

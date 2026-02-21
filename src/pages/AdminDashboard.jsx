@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { fetchUserPerformance } from "../api/adminApi";
 import { logoutAdmin } from "../api/auth";
 import UserPerformanceCard from "../components/UserPerformanceCard";
-
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,6 +76,7 @@ const AdminDashboard = () => {
           <a href="/dashboard/super" className="px-6 py-3 bg-white text-indigo-600 font-bold rounded-2xl border border-indigo-100 hover:bg-indigo-50 transition shadow-sm flex items-center gap-2">
             Team Settings
           </a>
+
           <button
             onClick={handleLogout}
             className="px-6 py-3 bg-red-50 text-red-600 font-bold rounded-2xl border border-red-100 hover:bg-red-100 transition shadow-sm flex items-center gap-2"
@@ -85,6 +85,8 @@ const AdminDashboard = () => {
           </button>
         </div>
       </div>
+
+
 
       {!users || users.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-gray-200">

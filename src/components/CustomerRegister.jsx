@@ -86,13 +86,14 @@ export default function UserRegister() {
 
         {/* Optional Email */}
         <div>
-          <label className="block text-sm font-medium">Email (Optional)</label>
+          <label className="block text-sm font-medium">Email</label>
           <input
             type="email"
             placeholder="user@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full mt-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            required
           />
         </div>
 

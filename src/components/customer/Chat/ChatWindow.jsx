@@ -230,12 +230,15 @@ export default function ChatWindow({
 
             {/* HEADER */}
             <div className="h-16 bg-white border-b flex items-center px-4 justify-between shadow-sm z-20 sticky top-0">
-                <div className="flex items-center gap-3">
-                    <button onClick={onBack} className="md:hidden text-gray-500 hover:bg-gray-100 p-2 rounded-full -ml-2">
+                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                    <button
+                        onClick={onBack}
+                        className="md:hidden text-indigo-600 hover:bg-indigo-50 p-2 rounded-full -ml-2 transition-colors shrink-0"
+                    >
                         <ArrowLeft size={24} />
                     </button>
 
-                    <div className="relative">
+                    <div className="relative shrink-0">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr from-blue-500 to-cyan-500`}>
                             {getInitials(selectedTicket.agent?.name || "Support")}
                         </div>
@@ -244,11 +247,11 @@ export default function ChatWindow({
                         )}
                     </div>
 
-                    <div>
-                        <div className="font-bold text-gray-900 text-sm md:text-base leading-tight">
+                    <div className="min-w-0 truncate">
+                        <div className="font-bold text-gray-900 text-sm md:text-base leading-tight truncate">
                             {selectedTicket.agent?.name || "Support Agent"}
                         </div>
-                        <div className="text-xs">
+                        <div className="text-[11px] md:text-xs truncate">
                             {selectedTicket.agent?.isOnline ? (
                                 <span className="text-blue-500 font-medium">online</span>
                             ) : (
@@ -260,9 +263,14 @@ export default function ChatWindow({
                     </div>
                 </div>
 
-                <button className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100">
-                    <MoreVertical size={20} />
-                </button>
+                <div className="flex items-center gap-1">
+                    <button className="text-gray-400 hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50 transition-colors">
+                        <Star size={20} className={rating ? "fill-amber-400 text-amber-400" : ""} />
+                    </button>
+                    <button className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors">
+                        <MoreVertical size={20} />
+                    </button>
+                </div>
             </div>
 
             {/* MESSAGES */}
@@ -407,20 +415,20 @@ export default function ChatWindow({
             </div>
 
             {/* INPUT AREA */}
-            <div className="bg-white border-t p-3 z-30">
+            <div className="bg-white border-t p-2 md:p-3 z-30 sticky bottom-0">
                 {!canChat ? (
-                    <div className="p-3 bg-gray-50 text-gray-500 rounded-lg text-center text-sm">
-                        Conversation is closed.
+                    <div className="p-3 bg-gray-50 text-gray-500 rounded-xl text-center text-sm font-medium">
+                        This conversation is closed.
                     </div>
                 ) : (
-                    <>
+                    <div className="max-w-4xl mx-auto">
                         {/* 🖼 IMAGE PREVIEW BEFORE SENDING */}
                         {filePreview && (
-                            <div className="relative inline-block mb-3 p-1 bg-gray-50 rounded-lg border border-gray-200">
-                                <img src={filePreview} alt="Preview" className="h-20 w-20 object-cover rounded-md" />
+                            <div className="relative inline-block mb-3 p-1 bg-gray-50 rounded-xl border border-gray-200">
+                                <img src={filePreview} alt="Preview" className="h-24 w-24 object-cover rounded-lg" />
                                 <button
                                     onClick={clearSelectedFile}
-                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
                                 >
                                     <X size={14} />
                                 </button>
@@ -429,22 +437,23 @@ export default function ChatWindow({
 
                         {/* 🎙 RECORDING BAR */}
                         {isRecording && (
-                            <div className="flex items-center justify-between bg-red-50 px-4 py-2 rounded-full">
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                                    <span className="text-red-600 font-medium">{formatTime(recordDuration)}</span>
+                            <div className="flex items-center justify-between bg-red-50 px-4 py-2 rounded-full mb-1">
+                                <div className="flex items-center gap-3">
+                                    <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.4)]"></span>
+                                    <span className="text-red-600 font-bold tracking-tight">{formatTime(recordDuration)}</span>
+                                    <span className="text-red-400 text-xs font-medium">Recording voice message...</span>
                                 </div>
-                                <button onClick={stopRecording} className="text-red-600">
-                                    <Square size={20} />
+                                <button onClick={stopRecording} className="text-red-600 p-2 hover:bg-red-100 rounded-full transition-colors">
+                                    <Square size={20} fill="currentColor" />
                                 </button>
                             </div>
                         )}
 
                         {/* 🎧 PREVIEW */}
                         {recordedAudio && !isRecording && (
-                            <div className="flex items-center gap-3 bg-gray-100 px-4 py-2 rounded-full">
-                                <button onClick={cancelRecording}>
-                                    <Trash2 size={18} className="text-red-500" />
+                            <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-2xl mb-1 border border-gray-100">
+                                <button onClick={cancelRecording} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors">
+                                    <Trash2 size={20} />
                                 </button>
                                 <div className="flex-1">
                                     <TelegramAudioPlayer
@@ -452,20 +461,20 @@ export default function ChatWindow({
                                         duration={formatTime(recordDuration)}
                                     />
                                 </div>
-                                <button onClick={handleSend} className="p-2 bg-indigo-500 text-white rounded-full">
-                                    <Send size={16} />
+                                <button onClick={handleSend} className="p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all hover:scale-105 active:scale-95">
+                                    <Send size={18} fill="currentColor" />
                                 </button>
                             </div>
                         )}
 
                         {/* NORMAL INPUT */}
                         {!isRecording && !recordedAudio && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-end gap-2">
                                 <button
                                     onClick={() => fileInputRef.current.click()}
-                                    className={`p-2 rounded-full transition-colors ${selectedFile ? 'text-blue-500 bg-blue-50' : 'text-gray-500 hover:bg-gray-100'}`}
+                                    className={`p-2.5 rounded-full transition-all ${selectedFile ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
                                 >
-                                    <Paperclip size={20} />
+                                    <Paperclip size={24} />
                                 </button>
 
                                 <input
@@ -476,31 +485,49 @@ export default function ChatWindow({
                                     onChange={handleFileSelect}
                                 />
 
-                                <input
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                                    placeholder="Message..."
-                                    className="flex-1 bg-gray-100 rounded-full px-4 py-2 outline-none text-gray-900"
-                                />
+                                <div className="flex-1 relative">
+                                    <textarea
+                                        value={newMessage}
+                                        onChange={(e) => setNewMessage(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
+                                                e.preventDefault();
+                                                handleSend();
+                                            }
+                                        }}
+                                        placeholder="Message..."
+                                        rows="1"
+                                        className="w-full bg-gray-100 rounded-[20px] px-4 py-2.5 outline-none text-gray-900 border border-transparent focus:border-indigo-200 focus:bg-white transition-all resize-none max-h-32 min-h-[44px]"
+                                        style={{ height: 'auto' }}
+                                        ref={(el) => {
+                                            if (el) {
+                                                el.style.height = 'auto';
+                                                el.style.height = el.scrollHeight + 'px';
+                                            }
+                                        }}
+                                    />
+                                </div>
 
-                                <button
-                                    onClick={startRecording}
-                                    className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
-                                >
-                                    <Mic size={22} />
-                                </button>
-
-                                <button
-                                    onClick={handleSend}
-                                    disabled={!newMessage.trim() && !selectedFile}
-                                    className={`p-2 rounded-full transition-all ${(!newMessage.trim() && !selectedFile) ? 'bg-gray-200 text-gray-400' : 'bg-indigo-500 text-white shadow-md'}`}
-                                >
-                                    <Send size={18} />
-                                </button>
+                                <div className="flex items-center self-end pb-0.5">
+                                    {!newMessage.trim() && !selectedFile ? (
+                                        <button
+                                            onClick={startRecording}
+                                            className="p-2.5 rounded-full text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                                        >
+                                            <Mic size={24} />
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleSend}
+                                            className="p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all hover:scale-105 active:scale-95"
+                                        >
+                                            <Send size={18} fill="currentColor" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
-                    </>
+                    </div>
                 )}
             </div>
         </div>

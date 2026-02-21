@@ -1,12 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Home, Search, HelpCircle, LogIn, User, Info, Phone } from "lucide-react";
+import { Menu, X, Home, Search, HelpCircle, LogIn, User, Info, Phone, Lock, LogOut } from "lucide-react";
 import clsx from "clsx";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [authStatus, setAuthStatus] = useState({
+        isLogged: false,
+        isAdmin: false
+    });
     const location = useLocation();
+
+    useEffect(() => {
+        const isAdmin = !!localStorage.getItem("adminToken");
+        const isCustomer = !!localStorage.getItem("customerToken");
+        setAuthStatus({
+            isLogged: isAdmin || isCustomer,
+            isAdmin: isAdmin
+        });
+    }, [location.pathname]);
 
     const navLinks = [
         { name: "Home", path: "/home", icon: Home },
@@ -17,6 +32,14 @@ export default function Navbar() {
     ];
 
     const handleToggle = () => setIsOpen(!isOpen);
+
+    const handleLogout = () => {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("customerToken");
+        localStorage.removeItem("adminId");
+        localStorage.removeItem("role");
+        window.location.href = "/";
+    };
 
     return (
         <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
@@ -54,15 +77,31 @@ export default function Navbar() {
 
                         <div className="h-6 w-px bg-gray-200 mx-4" />
 
-                        <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-indigo-600">
-                            Login
-                        </Link>
-                        <Link
-                            to="/customer-register"
-                            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-full shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5 transition-all"
-                        >
-                            Get Started
-                        </Link>
+                        {authStatus.isLogged ? (
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={() => setIsPasswordModalOpen(true)}
+                                    className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                                >
+                                    <Lock size={16} />
+                                    <span>Change Password</span>
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
+                                >
+                                    <LogOut size={16} />
+                                    <span>Logout</span>
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-indigo-600">
+                                    Login
+                                </Link>
+        
+                            </>
+                        )}
                     </div>
 
                     {/* Mobile Menu Button */}
@@ -76,6 +115,13 @@ export default function Navbar() {
                     </div>
                 </div>
             </div>
+
+            {/* Change Password Modal */}
+            <ChangePasswordModal
+                isOpen={isPasswordModalOpen}
+                onClose={() => setIsPasswordModalOpen(false)}
+                userType={authStatus.isAdmin ? "admin" : "customer"}
+            />
 
             {/* Mobile Menu */}
             <AnimatePresence>
@@ -99,22 +145,46 @@ export default function Navbar() {
                                 </Link>
                             ))}
                             <div className="h-px bg-gray-100 my-2" />
-                            <Link
-                                to="/login"
-                                onClick={() => setIsOpen(false)}
-                                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-indigo-600"
-                            >
-                                <LogIn size={18} />
-                                <span className="font-medium">Login</span>
-                            </Link>
-                            <Link
-                                to="/customer-register"
-                                onClick={() => setIsOpen(false)}
-                                className="flex items-center gap-3 px-4 py-3 text-indigo-600 font-medium bg-indigo-50 rounded-lg mt-2"
-                            >
-                                <User size={18} />
-                                <span>Create Account</span>
-                            </Link>
+                            {authStatus.isLogged ? (
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            setIsOpen(false);
+                                            setIsPasswordModalOpen(true);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors"
+                                    >
+                                        <Lock size={18} />
+                                        <span className="font-medium">Change Password</span>
+                                    </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                        <LogOut size={18} />
+                                        <span className="font-medium">Logout</span>
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link
+                                        to="/login"
+                                        onClick={() => setIsOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-indigo-600"
+                                    >
+                                        <LogIn size={18} />
+                                        <span className="font-medium">Login</span>
+                                    </Link>
+                                    <Link
+                                        to="/customer-register"
+                                        onClick={() => setIsOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-3 text-indigo-600 font-medium bg-indigo-50 rounded-lg mt-2"
+                                    >
+                                        <User size={18} />
+                                        <span>Create Account</span>
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -122,3 +192,5 @@ export default function Navbar() {
         </nav>
     );
 }
+
+

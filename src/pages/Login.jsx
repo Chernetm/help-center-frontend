@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Lock, Inbox, User, ArrowRight } from "lucide-react";
+import { Lock, Inbox, User, ArrowRight, ShieldCheck } from "lucide-react";
 import { login } from "../api/auth";
 import { Button } from "../components/ui/Button";
 
@@ -98,6 +98,14 @@ export default function Login() {
                                     placeholder="••••••••"
                                 />
                             </div>
+                            <div className="flex justify-end mt-2">
+                                <Link
+                                    to="/forgot-password?type=customer"
+                                    className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                                >
+                                    Forgot Password?
+                                </Link>
+                            </div>
                         </div>
 
                         {error && (
@@ -123,6 +131,16 @@ export default function Login() {
                         Don't have an account?{' '}
                         <Link to="/customer-register" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline">
                             Create Account
+                        </Link>
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+                        <Link
+                            to="/admin-login"
+                            className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                        >
+                            <ShieldCheck size={16} />
+                            Access Admin Portal
                         </Link>
                     </div>
                 </div>

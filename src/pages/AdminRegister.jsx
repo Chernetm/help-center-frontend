@@ -8,6 +8,8 @@ import {
   Mail,
   MapPin,
   Image as ImageIcon,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
 
@@ -20,9 +22,12 @@ export default function AdminRegister() {
     phoneNumber: "",
     email: "",
     password: "",
+    confirmPassword: "",
     address: "",
     image: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,9 +35,36 @@ export default function AdminRegister() {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  const getPasswordStrength = (pass) => {
+    let score = 0;
+    if (!pass) return { score: 0, label: "", color: "bg-gray-200" };
+    if (pass.length > 6) score++;
+    if (/[A-Z]/.test(pass)) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+    if (score <= 1) return { score: 25, label: "Weak", color: "bg-red-500" };
+    if (score === 2) return { score: 50, label: "Fair", color: "bg-yellow-500" };
+    if (score === 3) return { score: 75, label: "Good", color: "bg-blue-500" };
+    return { score: 100, label: "Strong", color: "bg-emerald-500" };
+  };
+
+  const strength = getPasswordStrength(form.password);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (strength.label === "Weak") {
+      setError("Please use a stronger password");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -141,18 +173,58 @@ export default function AdminRegister() {
             />
 
             {/* Password */}
-            <Field
-              label="Password"
-              icon={<Lock size={18} />}
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              required
-            />
+            <div className="relative">
+              <Field
+                label="Password"
+                icon={<Lock size={18} />}
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute top-9 right-3 text-gray-400 hover:text-indigo-600"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {form.password && (
+              <div className="text-[10px] uppercase font-bold tracking-wider">
+                <div className="flex justify-between mb-1">
+                  <span className="text-gray-500">Strength: {strength.label}</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-1">
+                  <div className={`${strength.color} h-1 rounded-full transition-all duration-300`} style={{ width: `${strength.score}%` }}></div>
+                </div>
+              </div>
+            )}
 
-    
+            {/* Confirm Password */}
+            <div className="relative">
+              <Field
+                label="Confirm Password"
+                icon={<Lock size={18} />}
+                name="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                value={form.confirmPassword}
+                onChange={handleChange}
+                placeholder="••••••••"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute top-9 right-3 text-gray-400 hover:text-indigo-600"
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+
 
             {/* Address */}
             <Field
