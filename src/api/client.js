@@ -2,7 +2,7 @@ import axios from 'axios';
 import { isTokenExpired, clearAuthData } from '../utils/authUtils';
 //https://help-center-backend-4wuz.onrender.com/api
 const client = axios.create({
-  baseURL: 'http://localhost:8090/api', // Adjust base URL as needed
+  baseURL: 'https://help-center-backend-1.onrender.com/api', // Adjust base URL as needed
   headers: {
     'Content-Type': 'application/json',
   },
