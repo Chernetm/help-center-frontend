@@ -33,7 +33,7 @@ export const getTicketRating = async (ticketId) => {
 
 export const sendMessage = async (messageData) => {
     console.log("Sending message data:", messageData);
-    const response = await client.post(`customer/tickets/messages`, messageData);
+    const response = await client.post('/customer/tickets/messages', messageData);
     console.log("API Response:", response);
     return response.data;
 };
@@ -43,7 +43,7 @@ export const sendAgentMessage = async (messageData) => {
 };
 
 export const rateTicket = async (ticketId, { customerId, score, comment }) => {
-    const res = await client.post(`customer/tickets/${ticketId}/rating`, {
+    const res = await client.post(`/customer/tickets/${ticketId}/rating`, {
         customerId,
         score,
         comment

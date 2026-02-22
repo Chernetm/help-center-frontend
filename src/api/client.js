@@ -21,17 +21,29 @@ client.interceptors.request.use(
     let token = null;
 
     // Prioritize specific tokens based on the request URL
-    if (config.url?.includes('/customer')) {
+    const url = config.url || '';
+    const isCustomerRequest = url.includes('/customer') || url.startsWith('customer/');
+    const isAdminRequest = url.includes('/admin') || url.includes('/agent') || url.includes('/ticket') || url.startsWith('admin/') || url.startsWith('agent/') || url.startsWith('ticket/');
+
+    if (isCustomerRequest) {
       token = getCookie('customerToken') || localStorage.getItem('customerToken');
-    } else if (config.url?.includes('/admin') || config.url?.includes('/agent') || config.url?.includes('/ticket')) {
+    } else if (isAdminRequest) {
       token = getCookie('adminToken') || localStorage.getItem('adminToken');
     }
 
-    // Fallback logic
+    // Fallback logic - only if no specific token was found above
     if (!token) {
-      token = getCookie('token') || localStorage.getItem('token') ||
-        getCookie('adminToken') || localStorage.getItem('adminToken') ||
-        getCookie('customerToken') || localStorage.getItem('customerToken');
+      if (isCustomerRequest) {
+        // We already tried customer tokens, maybe generic 'token' exists?
+        token = getCookie('token') || localStorage.getItem('token');
+      } else if (isAdminRequest) {
+        token = getCookie('token') || localStorage.getItem('token');
+      } else {
+        // Truly generic request
+        token = getCookie('token') || localStorage.getItem('token') ||
+          getCookie('adminToken') || localStorage.getItem('adminToken') ||
+          getCookie('customerToken') || localStorage.getItem('customerToken');
+      }
     }
 
     if (token) {
