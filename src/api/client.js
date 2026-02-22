@@ -51,17 +51,85 @@ client.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle 401s globally
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// Response interceptor to handle 401s and token refresh
 client.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      // Clear auth data if 401 is received (token invalid/expired)
-      clearAuthData();
+  async (error) => {
+    const originalRequest = error.config;
 
-      // Determine where to redirect based on the URL or previous state
-      // For now, we can redirect to the main login or home
-      // window.location.href = '/login'; 
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise(function (resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            originalRequest.headers['Authorization'] = 'Bearer ' + token;
+            return client(originalRequest);
+          })
+          .catch(err => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const isAdmin = originalRequest.url.includes('/admin') || originalRequest.url.includes('/agent') || originalRequest.url.includes('/ticket');
+      const refreshToken = isAdmin
+        ? (getCookie('adminRefreshToken') || localStorage.getItem('adminRefreshToken'))
+        : (getCookie('customerRefreshToken') || localStorage.getItem('customerRefreshToken'));
+
+      if (refreshToken) {
+        try {
+          const refreshUrl = isAdmin ? '/auth/admin/refresh' : '/auth/customer/refresh';
+          // Use axios directly to avoid interceptors loop
+          const response = await axios.post(`${client.defaults.baseURL}${refreshUrl}`, { refreshToken });
+
+          const { token: newToken, refreshToken: newRefreshToken, expiresIn } = response.data;
+
+          // Update storage
+          if (isAdmin) {
+            localStorage.setItem('adminToken', newToken);
+            localStorage.setItem('adminRefreshToken', newRefreshToken);
+            document.cookie = `adminToken=${newToken}; max-age=${expiresIn}; path=/`;
+            document.cookie = `adminRefreshToken=${newRefreshToken}; max-age=${3600 * 24 * 30}; path=/`;
+          } else {
+            localStorage.setItem('customerToken', newToken);
+            localStorage.setItem('customerRefreshToken', newRefreshToken);
+            document.cookie = `customerToken=${newToken}; max-age=${expiresIn}; path=/`;
+            document.cookie = `customerRefreshToken=${newRefreshToken}; max-age=${3600 * 24 * 30}; path=/`;
+          }
+
+          processQueue(null, newToken);
+          isRefreshing = false;
+
+          originalRequest.headers['Authorization'] = 'Bearer ' + newToken;
+          return client(originalRequest);
+        } catch (refreshError) {
+          processQueue(refreshError, null);
+          isRefreshing = false;
+          clearAuthData();
+          // Optionally redirect to login
+          // window.location.href = isAdmin ? '/admin/login' : '/login';
+          return Promise.reject(refreshError);
+        }
+      } else {
+        clearAuthData();
+      }
     }
     return Promise.reject(error);
   }

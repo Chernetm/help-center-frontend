@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { registerAdmin } from "../api/auth";
 import {
   Lock,
   Phone,
@@ -68,19 +69,26 @@ export default function AdminRegister() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        "http://localhost:8090/api/admin/register",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        }
-      );
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Registration failed");
-      }
+       const response = await registerAdmin(form);
+        console.log("Admin registered:", response);
+        if (!response) {
+          throw new Error("Registration failed");
+        }
+      // await registerAdmin(form);
+      // // const res = await fetch(
+      // //   "http://localhost:8090/api/admin/super/register",
+      // //   {
+      // //     method: "POST",
+      // //     headers: { "Content-Type": "application/json" },
+      // //     body: JSON.stringify(form),
+      // //   }
+      // // );
+
+      // if (!res.ok) {
+      //   const err = await res.json();
+      //   throw new Error(err.message || "Registration failed");
+      // }
 
       navigate("/admin/login", {
         state: { message: "Admin account created successfully" },
@@ -239,16 +247,6 @@ export default function AdminRegister() {
               value={form.address}
               onChange={handleChange}
               placeholder="Addis Ababa"
-            />
-
-            {/* Image */}
-            <Field
-              label="Profile Image URL"
-              icon={<ImageIcon size={18} />}
-              name="image"
-              value={form.image}
-              onChange={handleChange}
-              placeholder="https://..."
             />
 
             {error && (

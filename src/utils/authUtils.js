@@ -29,6 +29,9 @@ export const clearAuthData = () => {
     localStorage.removeItem('customerToken');
     localStorage.removeItem('adminToken');
     localStorage.removeItem('token');
+    localStorage.removeItem('customerRefreshToken');
+    localStorage.removeItem('adminRefreshToken');
+    localStorage.removeItem('tokenRefreshToken'); // generic if any
     localStorage.removeItem('adminId');
     localStorage.removeItem('role');
 
@@ -36,4 +39,6 @@ export const clearAuthData = () => {
     document.cookie = "customerToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     document.cookie = "adminToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "customerRefreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "adminRefreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 };

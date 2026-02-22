@@ -1,40 +1,84 @@
 import React, { useEffect, useState } from "react";
-import { getOrders } from "../../../api/orders";
+import { getOrders, updateOrder } from "../../../api/orders";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus, Search, FileText, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Search, FileText, Loader2, AlertCircle, Edit2, Check, X } from "lucide-react";
 import { Button } from "../../ui/Button";
+
+const STATUS_OPTIONS = ["pending", "processing", "completed", "delivered", "cancelled"];
+const DEPARTMENT_OPTIONS = ["Sales", "Support", "Billing", "Hardware", "Software"];
+const URGENCY_OPTIONS = ["Low", "Normal", "High", "Critical"];
 
 const OrderList = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [editingId, setEditingId] = useState(null);
+    const [editData, setEditData] = useState({});
+    const [updating, setUpdating] = useState(false);
+
+    const fetchOrders = async () => {
+        try {
+            const data = await getOrders();
+            console.log("Fetched orders:", data);
+            setOrders(data || []);
+        } catch (err) {
+            setError("Failed to fetch orders");
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                const data = await getOrders();
-                console.log("Fetched orders:", data);
-                setOrders(data || []);
-            } catch (err) {
-                setError("Failed to fetch orders");
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchOrders();
     }, []);
+
+    const handleEdit = (order) => {
+        setEditingId(order.id || order.order_id);
+        setEditData({
+            status: order.status || "pending",
+            urgency: order.urgency || "Normal",
+            description: order.description || "",
+            estimated_time: order.EstimatedTime ? new Date(order.EstimatedTime).toISOString().slice(0, 10) : "",
+        });
+    };
+
+    const handleCancel = () => {
+        setEditingId(null);
+        setEditData({});
+    };
+
+    const handleUpdate = async (id) => {
+        setUpdating(true);
+        try {
+            const payload = {
+                status: editData.status,
+                urgency: editData.urgency,
+                description: editData.description,
+                estimated_time: editData.estimated_time ? new Date(editData.estimated_time).toISOString() : null,
+            };
+            // Note: Department is taken from middleware in backend
+            await updateOrder(id, payload);
+            setEditingId(null);
+            fetchOrders();
+        } catch (err) {
+            console.error("Update failed:", err);
+            alert("Failed to update order");
+        } finally {
+            setUpdating(false);
+        }
+    };
 
     const filteredOrders = orders.filter((order) => {
         const id = order.order_id?.toLowerCase() || "";
         const status = order.status?.toLowerCase() || "";
         const department = order.department?.toLowerCase() || "";
+        const description = order.description?.toLowerCase() || "";
         const term = searchTerm.toLowerCase();
-        return id.includes(term) || status.includes(term) || department.includes(term);
+        return id.includes(term) || status.includes(term) || department.includes(term) || description.includes(term);
     });
-
 
     if (loading) {
         return (
@@ -98,16 +142,16 @@ const OrderList = () => {
                                 <th className="px-6 py-4 font-medium">Status</th>
                                 <th className="px-6 py-4 font-medium">Department</th>
                                 <th className="px-6 py-4 font-medium">Urgency</th>
-                                <th className="px-6 py-4 font-medium">Date Created</th>
+                                <th className="px-6 py-4 font-medium">Description</th>
                                 <th className="px-6 py-4 font-medium">Estimated Time</th>
-
+                                <th className="px-6 py-4 font-medium text-center">Actions</th>
                             </tr>
                         </thead>
 
                         <tbody className="divide-y divide-gray-100">
                             {filteredOrders.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-12 text-center text-gray-400">
+                                    <td colSpan="7" className="px-6 py-12 text-center text-gray-400">
                                         <div className="flex flex-col items-center justify-center gap-3">
                                             <FileText size={48} className="text-gray-200" />
                                             <p>No orders found matching your search.</p>
@@ -115,42 +159,121 @@ const OrderList = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredOrders.map((order, idx) => (
-                                    <motion.tr
-                                        key={order.id || order.order_id || idx} // fallback key
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="hover:bg-gray-50/50 transition-colors"
-                                    >
-                                        <td className="px-6 py-4 font-medium text-gray-900">
-                                            #{order.order_id || "-"}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                        ${order.status === 'completed' || order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                                            'bg-blue-100 text-blue-800'}`}>
-                                                {order.status || "-"}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-600">
-                                            {order.department || "-"}
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-600 capitalize">
-                                            {order.urgency || "Normal"}
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-500 text-sm">
-                                            {order.CreatedAt ? new Date(order.CreatedAt).toLocaleDateString() : "-"}
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-500 text-sm">
-                                            {order.estimated_time ? new Date(order.estimated_time).toLocaleDateString() : "-"}
-                                        </td>
-                                    </motion.tr>
-                                ))
+                                filteredOrders.map((order, idx) => {
+                                    const isEditing = editingId === (order.id || order.order_id);
+                                    return (
+                                        <motion.tr
+                                            key={order.id || order.order_id || idx}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            className="hover:bg-gray-50/50 transition-colors"
+                                        >
+                                            <td className="px-6 py-4 font-medium text-gray-900">
+                                                #{order.order_id || "-"}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {isEditing ? (
+                                                    <select
+                                                        value={editData.status}
+                                                        onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                                                        className="text-xs border border-gray-200 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                    >
+                                                        {STATUS_OPTIONS.map(opt => (
+                                                            <option key={opt} value={opt}>{opt}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                                                        ${order.status === 'completed' || order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                                            order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                                order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                                                    'bg-blue-100 text-blue-800'}`}>
+                                                        {order.status || "-"}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600">
+                                                {order.department || "-"}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600">
+                                                {isEditing ? (
+                                                    <select
+                                                        value={editData.urgency}
+                                                        onChange={(e) => setEditData({ ...editData, urgency: e.target.value })}
+                                                        className="text-xs border border-gray-200 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                    >
+                                                        {URGENCY_OPTIONS.map(opt => (
+                                                            <option key={opt} value={opt}>{opt}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <span className={`capitalize ${order.urgency === 'Critical' || order.urgency === 'High' ? 'text-red-600 font-semibold' : ''}`}>
+                                                        {order.urgency || "Normal"}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600 max-w-xs truncate">
+                                                {isEditing ? (
+                                                    <input
+                                                        type="text"
+                                                        value={editData.description}
+                                                        placeholder="Description..."
+                                                        onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                                                        className="text-xs border border-gray-200 rounded px-2 py-1 w-full outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                    />
+                                                ) : (
+                                                    order.description || "-"
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-500 text-sm whitespace-nowrap">
+                                                {isEditing ? (
+                                                    <input
+                                                        type="date"
+                                                        value={editData.estimated_time}
+                                                        onChange={(e) => setEditData({ ...editData, estimated_time: e.target.value })}
+                                                        className="text-xs border border-gray-200 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                    />
+                                                ) : (
+                                                    order.EstimatedTime ? new Date(order.EstimatedTime).toLocaleDateString() : "-"
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {isEditing ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleUpdate(order.order_id)}
+                                                                disabled={updating}
+                                                                className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                                title="Save"
+                                                            >
+                                                                {updating ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                                                            </button>
+                                                            <button
+                                                                onClick={handleCancel}
+                                                                disabled={updating}
+                                                                className="p-1 text-gray-400 hover:bg-gray-50 rounded transition-colors"
+                                                                title="Cancel"
+                                                            >
+                                                                <X size={18} />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleEdit(order)}
+                                                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                            title="Edit"
+                                                        >
+                                                            <Edit2 size={18} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </motion.tr>
+                                    );
+                                })
                             )}
                         </tbody>
-
                     </table>
                 </div>
             </div>

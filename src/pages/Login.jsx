@@ -21,8 +21,14 @@ export default function Login() {
         try {
             const data = await login({ email, password });
 
-            // Store token (ensure your API returns 'token' field)
+            // Store tokens and expiration
             localStorage.setItem("customerToken", data.token);
+            localStorage.setItem("customerRefreshToken", data.refreshToken);
+
+            // Set cookie with expiresIn from backend
+            const maxAge = data.expiresIn || 3600;
+            document.cookie = `customerToken=${data.token}; max-age=${maxAge}; path=/`;
+            document.cookie = `customerRefreshToken=${data.refreshToken}; max-age=${3600 * 24 * 30}; path=/`; // 30 days for refresh token
 
             navigate("/order-status"); // Redirect to a dashboard or order status
         } catch (err) {

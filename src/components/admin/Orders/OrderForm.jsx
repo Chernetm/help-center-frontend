@@ -12,6 +12,7 @@ import {
   Plus,
   Loader2,
   ArrowLeft,
+  AlignLeft,
 } from "lucide-react";
 
 export default function OrderForm() {
@@ -20,6 +21,7 @@ export default function OrderForm() {
     order_id: "",
     status: "pending",
     urgency: "normal",
+    description: "",
     estimated_time: "",
   });
 
@@ -44,6 +46,7 @@ export default function OrderForm() {
         order_id: formData.order_id,
         status: formData.status,
         urgency: formData.urgency,
+        description: formData.description,
         estimated_time: formData.estimated_time
           ? new Date(formData.estimated_time).toISOString()
           : null,
@@ -56,6 +59,7 @@ export default function OrderForm() {
         order_id: "",
         status: "pending",
         urgency: "normal",
+        description: "",
         estimated_time: "",
       });
 
@@ -109,8 +113,8 @@ export default function OrderForm() {
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 className={`rounded-xl p-4 mb-6 flex items-start gap-3 ${message.type === "success"
-                    ? "bg-green-50 text-green-700 border border-green-100"
-                    : "bg-red-50 text-red-700 border border-red-100"
+                  ? "bg-green-50 text-green-700 border border-green-100"
+                  : "bg-red-50 text-red-700 border border-red-100"
                   }`}
               >
                 {message.type === "success" ? (
@@ -201,6 +205,27 @@ export default function OrderForm() {
                   <option value="urgent">Urgent</option>
                   <option value="express">Express</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700">
+                Description
+              </label>
+              <div className="relative mt-2">
+                <AlignLeft
+                  size={18}
+                  className="absolute left-3 top-3.5 text-gray-400"
+                />
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows="3"
+                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none"
+                  placeholder="Additional order details..."
+                />
               </div>
             </div>
 

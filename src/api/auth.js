@@ -15,7 +15,7 @@ export const logoutAdmin = async () => {
 
 
 export const registerAdmin = async (userData) => {
-    const response = await client.post('/admin/register', userData);
+    const response = await client.post('/admin/super/register', userData);
     return response.data;
 };
 

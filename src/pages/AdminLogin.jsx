@@ -57,10 +57,16 @@ export default function AdminLogin() {
         try {
             const data = await loginAdmin({ email, password });
 
-            // Store user info
+            // Store user info and tokens
             localStorage.setItem("adminId", data.user.id);
             localStorage.setItem("role", data.user.role);
             localStorage.setItem("adminToken", data.token);
+            localStorage.setItem("adminRefreshToken", data.refreshToken);
+
+            // Set cookies with expiresIn from backend
+            const maxAge = data.expiresIn || 3600;
+            document.cookie = `adminToken=${data.token}; max-age=${maxAge}; path=/`;
+            document.cookie = `adminRefreshToken=${data.refreshToken}; max-age=${3600 * 24 * 30}; path=/`; // 30 days
 
             // Role-based navigation
             if (data.user.role === "super-admin") {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getOrderById } from "../../../api/orders";
+import { trackOrder } from "../../../api/orders";
 import { Button } from "../../ui/Button";
 
 export default function OrderLookup() {
@@ -20,7 +20,8 @@ export default function OrderLookup() {
         setSearched(true);
 
         try {
-            const data = await getOrderById(orderId);
+            const data = await trackOrder(orderId);
+            console.log("Fetched order data:", data);
             setOrder(data);
         } catch (err) {
             if (err.response?.status === 404) {
@@ -87,7 +88,7 @@ export default function OrderLookup() {
                         <div className="bg-blue-600 p-6 text-white flex justify-between items-center">
                             <div>
                                 <div className="text-blue-100 text-sm font-medium">Order ID</div>
-                                <div className="text-2xl font-bold">#{order.id}</div>
+                                <div className="text-2xl font-bold">#{order.order_id}</div>
                             </div>
                             <div className="bg-white/20 backdrop-blur-sm px-4 py-1 rounded-full text-sm font-semibold capitalize">
                                 {order.status}
@@ -95,10 +96,14 @@ export default function OrderLookup() {
                         </div>
 
                         <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <DetailItem label="Department" value={order.department} />
+                            <DetailItem label="Status" value={order.status} capitalize />
                             <DetailItem label="Urgency" value={order.urgency} capitalize />
-                            <DetailItem label="Customer" value={order.user?.name || order.user?.email || "Unknown"} />
-                            <DetailItem label="Last Updated" value={new Date(order.updatedAt).toLocaleString()} />
+                            <DetailItem label="Department" value={order.department} />
+                            <DetailItem label="Estimated Completion" value={order.EstimatedTime ? new Date(order.EstimatedTime).toLocaleString() : "Not scheduled"} />
+                            <DetailItem label="Last Updated" value={new Date(order.UpdatedAt).toLocaleString()} />
+                            <div className="md:col-span-2">
+                                <DetailItem label="Description" value={order.description} />
+                            </div>
                         </div>
 
                         {/* Simple progress bar visualization */}
