@@ -67,8 +67,3 @@ class WSWrapper {
 const socket = new WSWrapper("wss://help-center-backend-1.onrender.com/ws");
 
 export default socket;
-
-
-//help-center-backend-4wuz.onrender.com
-
-//https://help-center-backend-1.onrender.com
