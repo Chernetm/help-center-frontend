@@ -23,7 +23,8 @@ export default function AdminChat() {
   useEffect(() => {
     const storedAdminId = localStorage.getItem("adminId");
     if (storedAdminId) setAgentId(parseInt(storedAdminId, 10));
-    socket.emit("adminLogin", "");
+    const token = localStorage.getItem("adminToken");
+    socket.emit("adminLogin", token || "");
   }, []);
 
   // ---------------- LOAD TICKETS ----------------
@@ -88,7 +89,7 @@ export default function AdminChat() {
     const previousSelected = selectedTicket ? { ...selectedTicket } : null;
 
     setTickets(prev => prev.map(t =>
-      Number(t.id) === Number(ticketId) ? { ...t, status: 'closed' } : t
+      Number(t.id) === Number(ticketId) ? { ...t, status: 'closed', isClosed: true } : t
     ));
 
     if (selectedTicket && Number(selectedTicket.id) === Number(ticketId)) {
@@ -180,7 +181,8 @@ export default function AdminChat() {
 
     const handleConnect = () => {
       console.log("AdminChat: Socket connected/reconnected");
-      socket.emit("adminLogin", "");
+      const token = localStorage.getItem("adminToken");
+      socket.emit("adminLogin", token || "");
       if (agentId) socket.emit("join", `admin_${agentId}`);
 
       setTickets(prev => {
@@ -194,7 +196,7 @@ export default function AdminChat() {
     const handleTicketClosed = (ticketId) => {
       console.log("AdminChat: Ticket closed", ticketId);
       setTickets(prev => prev.map(t =>
-        Number(t.id) === Number(ticketId) ? { ...t, status: 'closed' } : t
+        Number(t.id) === Number(ticketId) ? { ...t, status: 'closed', isClosed: true } : t
       ));
       if (selectedTicketRef.current && Number(selectedTicketRef.current.id) === Number(ticketId)) {
         setSelectedTicket(prev => ({ ...prev, status: 'closed' }));

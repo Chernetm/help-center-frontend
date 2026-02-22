@@ -235,10 +235,10 @@ export default function CustomerChat() {
         const handleTicketClosed = (ticketId) => {
             console.log("CustomerChat: Ticket closed", ticketId);
             setTickets(prev => prev.map(t =>
-                Number(t.id) === Number(ticketId) ? { ...t, status: 'closed' } : t
+                Number(t.id) === Number(ticketId) ? { ...t, status: 'closed', isClosed: true } : t
             ));
             if (selectedTicketRef.current && Number(selectedTicketRef.current.id) === Number(ticketId)) {
-                setSelectedTicket(prev => ({ ...prev, status: 'closed' }));
+                setSelectedTicket(prev => ({ ...prev, status: 'closed', isClosed: true }));
             }
         };
 
