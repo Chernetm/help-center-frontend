@@ -24,9 +24,12 @@ client.interceptors.request.use(
     // Prioritize specific tokens based on the request URL
     const url = config.url || '';
 
-    // Check for Admin/Agent routes first to avoid overlap (e.g., /admin/customers)
-    const isAdminRequest = url.includes('/admin') || url.includes('/agent') || url.includes('/ticket');
-    const isCustomerRequest = !isAdminRequest && (url.includes('/customer') || url.startsWith('customer/'));
+    // Exact segment checking to avoid overlaps like /admin/customers or /customer/tickets
+    // Clean the URL of leading slashes for comparison
+    const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+
+    const isAdminRequest = cleanPath.startsWith('admin') || cleanPath.startsWith('agent') || cleanPath.startsWith('ticket');
+    const isCustomerRequest = !isAdminRequest && cleanPath.startsWith('customer');
 
     if (isAdminRequest) {
       token = getCookie('adminToken') || localStorage.getItem('adminToken');
