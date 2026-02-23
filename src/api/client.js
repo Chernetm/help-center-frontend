@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { isTokenExpired, clearAuthData } from '../utils/authUtils';
 //https://help-center-backend-4wuz.onrender.com/api
+//https://help-center-backend-1.onrender.com/api
 const client = axios.create({
   baseURL: 'https://help-center-backend-1.onrender.com/api', // Adjust base URL as needed
   headers: {
@@ -22,13 +23,15 @@ client.interceptors.request.use(
 
     // Prioritize specific tokens based on the request URL
     const url = config.url || '';
-    const isCustomerRequest = url.includes('/customer') || url.startsWith('customer/');
-    const isAdminRequest = url.includes('/admin') || url.includes('/agent') || url.includes('/ticket') || url.startsWith('admin/') || url.startsWith('agent/') || url.startsWith('ticket/');
 
-    if (isCustomerRequest) {
-      token = getCookie('customerToken') || localStorage.getItem('customerToken');
-    } else if (isAdminRequest) {
+    // Check for Admin/Agent routes first to avoid overlap (e.g., /admin/customers)
+    const isAdminRequest = url.includes('/admin') || url.includes('/agent') || url.includes('/ticket');
+    const isCustomerRequest = !isAdminRequest && (url.includes('/customer') || url.startsWith('customer/'));
+
+    if (isAdminRequest) {
       token = getCookie('adminToken') || localStorage.getItem('adminToken');
+    } else if (isCustomerRequest) {
+      token = getCookie('customerToken') || localStorage.getItem('customerToken');
     }
 
     // Fallback logic - only if no specific token was found above
