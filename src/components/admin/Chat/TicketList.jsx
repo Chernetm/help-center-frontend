@@ -3,12 +3,44 @@ import { motion } from 'framer-motion';
 import { MessageCircle, CheckCircle } from 'lucide-react';
 import { formatTelegramDate } from '../../../utils/dateUtils';
 
-export default function TicketList({ tickets, selectedTicket, onSelectTicket, onCloseTicket, className }) {
+export default function TicketList({
+    tickets,
+    selectedTicket,
+    onSelectTicket,
+    onCloseTicket,
+    isLoading,
+    onLoadMore,
+    hasMore,
+    isFetchingMore,
+    className
+}) {
+    const scrollRef = React.useRef(null);
 
-    if (!tickets) {
+    const handleScroll = () => {
+        if (!scrollRef.current || !hasMore || isFetchingMore) return;
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+        if (scrollHeight - scrollTop <= clientHeight + 50) {
+            onLoadMore();
+        }
+    };
+
+    if (isLoading) {
         return (
-            <div className="h-full flex items-center justify-center bg-white border-r">
-                <div className="animate-pulse text-gray-400">Loading chats...</div>
+            <div className="h-full bg-white border-r border-gray-200 flex flex-col">
+                <div className="h-16 px-4 border-b border-gray-100 flex items-center bg-white shrink-0">
+                    <div className="h-6 w-24 bg-gray-100 rounded animate-pulse"></div>
+                </div>
+                <div className="flex-1 p-2 space-y-2 overflow-hidden">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="p-3 flex gap-3">
+                            <div className="w-12 h-12 rounded-full bg-gray-100 animate-pulse shrink-0"></div>
+                            <div className="flex-1 space-y-2 py-1">
+                                <div className="h-4 bg-gray-100 rounded w-1/3 animate-pulse"></div>
+                                <div className="h-3 bg-gray-50 rounded w-full animate-pulse"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -21,12 +53,16 @@ export default function TicketList({ tickets, selectedTicket, onSelectTicket, on
         <div className={`w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 h-full flex flex-col ${className}`}>
 
             {/* Header */}
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+            <div className="h-16 px-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-20">
                 <h2 className="font-bold text-lg text-gray-800">Messages</h2>
             </div>
 
             {/* List */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-2 space-y-1"
+            >
                 {tickets.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 text-gray-400 text-sm">
                         <MessageCircle size={32} className="mb-2 opacity-50" />
@@ -98,6 +134,12 @@ export default function TicketList({ tickets, selectedTicket, onSelectTicket, on
                             </motion.div>
                         );
                     })
+                )}
+
+                {isFetchingMore && (
+                    <div className="py-2 text-center text-xs text-gray-400 animate-pulse">
+                        Loading more...
+                    </div>
                 )}
             </div>
         </div>

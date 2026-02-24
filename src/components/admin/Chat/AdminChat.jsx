@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import socket from '../../../socket';
-import { getAgentTickets, getTicketRating, sendAgentMessage as apiSendMessage, markMessagesAsRead, closeTicket as apiCloseTicket } from '../../../api/cases';
+import {
+  getAgentTickets,
+  getTicketRating,
+  rateTicket,
+  createTicket,
+  sendAgentMessage as apiSendMessage,
+  markMessagesAsRead,
+  getTicket,
+  closeTicket as apiCloseTicket
+} from '../../../api/cases';
 import TicketList from './TicketList';
 import ChatWindow from './ChatWindow';
 import { uploadToCloudinary } from '../../../utils/cloudinaryUpload';
@@ -10,14 +19,26 @@ export default function AdminChat() {
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const selectedTicketRef = React.useRef(null);
+  const ticketsRef = React.useRef([]);
 
   useEffect(() => {
     selectedTicketRef.current = selectedTicket;
   }, [selectedTicket]);
 
+  useEffect(() => {
+    ticketsRef.current = tickets;
+  }, [tickets]);
+
   const [messages, setMessages] = useState([]);
   const [mobileView, setMobileView] = useState('list');
   const [rating, setRating] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // ⭐ Lazy Loading
+  const TICKET_LIMIT = 10;
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   // ---------------- AUTH ----------------
   useEffect(() => {
@@ -27,23 +48,48 @@ export default function AdminChat() {
     socket.emit("adminLogin", token || "");
   }, []);
 
-  // ---------------- LOAD TICKETS ----------------
-  useEffect(() => {
-    getAgentTickets()
-      .then((data) => {
-        const processedTickets = data.map(ticket => ({
-          ...ticket,
-          unreadCount: ticket.chats?.filter(c => c.senderType === 'customer' && !c.isRead).length || 0
-        }));
-        setTickets(processedTickets);
+  const fetchTickets = async (isInitial = false) => {
+    try {
+      const currentOffset = isInitial ? 0 : offset;
+      console.log(`AdminChat: Fetching tickets limit: ${TICKET_LIMIT}, offset: ${currentOffset}`);
+      const data = await getAgentTickets(TICKET_LIMIT, currentOffset);
 
-        // Join all ticket rooms to receive real-time unread count updates
-        processedTickets.forEach(t => {
-          socket.emit("joinTicket", t.id);
-        });
-      })
-      .catch(console.error);
+      const processedTickets = (data || []).map(ticket => ({
+        ...ticket,
+        unreadCount: ticket.chats?.filter(c => c.senderType === 'customer' && !c.isRead).length || 0
+      }));
+
+      setTickets(prev => isInitial ? processedTickets : [...prev, ...processedTickets]);
+
+      if (processedTickets.length < TICKET_LIMIT) {
+        setHasMore(false);
+      }
+
+      const newOffset = isInitial ? processedTickets.length : offset + processedTickets.length;
+      setOffset(newOffset);
+
+      // Join rooms
+      processedTickets.forEach(t => {
+        socket.emit("joinTicket", t.id);
+      });
+
+    } catch (err) {
+      console.error("AdminChat: Failed to fetch tickets:", err);
+    } finally {
+      if (isInitial) setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets(true);
   }, []);
+
+  const handleLoadMore = async () => {
+    if (isFetchingMore || !hasMore) return;
+    setIsFetchingMore(true);
+    await fetchTickets(false);
+    setIsFetchingMore(false);
+  };
 
   // ---------------- SELECT TICKET & MARK READ ----------------
   const handleSelectTicket = async (ticket) => {
@@ -145,18 +191,40 @@ export default function AdminChat() {
         }
       }
 
-      setTickets(prev => prev.map(t => {
-        if (Number(t.id) === Number(chat.ticketId)) {
-          const isSelected = currentSelected && Number(currentSelected.id) === Number(chat.ticketId);
-          return {
-            ...t,
-            chats: [...(t.chats || []), chat],
-            unreadCount: isSelected ? 0 : (t.unreadCount || 0) + 1,
+      setTickets(prev => {
+        const ticketIndex = prev.findIndex(t => Number(t.id) === Number(chat.ticketId));
+        const isSelected = currentSelected && Number(currentSelected.id) === Number(chat.ticketId);
+
+        if (ticketIndex !== -1) {
+          // Update and move to top
+          const updatedTicket = {
+            ...prev[ticketIndex],
+            chats: [...(prev[ticketIndex].chats || []), chat],
+            unreadCount: isSelected ? 0 : (prev[ticketIndex].unreadCount || 0) + 1,
             updatedAt: chat.createdAt
           };
+          const newTickets = [...prev];
+          newTickets.splice(ticketIndex, 1);
+          return [updatedTicket, ...newTickets];
+        } else {
+          // Fetch missing ticket
+          getTicket(chat.ticketId, 'admin').then(ticket => {
+            if (ticket) {
+              const processedTicket = {
+                ...ticket,
+                unreadCount: 1,
+                updatedAt: chat.createdAt
+              };
+              setTickets(current => {
+                if (current.find(t => Number(t.id) === Number(ticket.id))) return current;
+                return [processedTicket, ...current];
+              });
+              socket.emit("joinTicket", ticket.id);
+            }
+          }).catch(err => console.error("Failed to fetch missing ticket for admin:", err));
+          return prev;
         }
-        return t;
-      }));
+      });
     };
 
     const handleMessagesRead = ({ ticketId, readBy }) => {
@@ -185,11 +253,9 @@ export default function AdminChat() {
       socket.emit("adminLogin", token || "");
       if (agentId) socket.emit("join", `admin_${agentId}`);
 
-      setTickets(prev => {
-        prev.forEach(t => {
-          socket.emit("joinTicket", t.id);
-        });
-        return prev;
+      // Re-join all ticket rooms
+      ticketsRef.current.forEach(t => {
+        socket.emit("joinTicket", t.id);
       });
     };
 
@@ -283,6 +349,10 @@ export default function AdminChat() {
         selectedTicket={selectedTicket}
         onSelectTicket={handleSelectTicket}
         onCloseTicket={handleCloseTicket}
+        isLoading={isLoading}
+        onLoadMore={handleLoadMore}
+        hasMore={hasMore}
+        isFetchingMore={isFetchingMore}
         className={mobileView === 'chat' ? 'hidden md:flex' : 'flex'}
       />
 

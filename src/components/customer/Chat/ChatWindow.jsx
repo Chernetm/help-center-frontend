@@ -214,7 +214,7 @@ export default function ChatWindow({
 
     if (!selectedTicket) {
         return (
-            <div className="flex-1 hidden md:flex flex-col items-center justify-center bg-[#8E9CAA]/10 select-none">
+            <div className="flex-1 hidden lg:flex flex-col items-center justify-center bg-[#8E9CAA]/10 select-none">
                 <div className="bg-white/50 p-4 rounded-full mb-4">
                     <span className="text-4xl">👋</span>
                 </div>
@@ -229,11 +229,11 @@ export default function ChatWindow({
         <div className="flex-1 flex flex-col h-full bg-[#E4EBEF]">
 
             {/* HEADER */}
-            <div className="h-16 bg-white border-b flex items-center px-4 justify-between shadow-sm z-20 sticky top-0">
+            <div className={`h-16 bg-white border-b flex items-center px-4 justify-between transition-shadow z-20 sticky top-0 ${isMobile ? 'shadow-sm' : ''}`}>
                 <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
                     <button
                         onClick={onBack}
-                        className="md:hidden text-indigo-600 hover:bg-indigo-50 p-2 rounded-full -ml-2 transition-colors shrink-0"
+                        className="lg:hidden text-indigo-600 hover:bg-indigo-50 p-2 rounded-full -ml-2 transition-colors shrink-0"
                     >
                         <ArrowLeft size={24} />
                     </button>

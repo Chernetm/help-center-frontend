@@ -4,6 +4,7 @@ class WSWrapper {
         this.url = url;
         this.listeners = {};
         this.socket = null;
+        this.queue = []; // Buffer messages if not connected
         this.connect();
     }
 
@@ -13,6 +14,11 @@ class WSWrapper {
         this.socket.onopen = () => {
             console.log("WS Connected");
             this.emitEvent("connect");
+            // Flush queue
+            while (this.queue.length > 0) {
+                const msg = this.queue.shift();
+                this.socket.send(JSON.stringify(msg));
+            }
         };
 
         this.socket.onmessage = (event) => {
@@ -42,6 +48,11 @@ class WSWrapper {
             this.listeners[event] = [];
         }
         this.listeners[event].push(callback);
+
+        // If it's a connect listener and we're already open, fire it!
+        if (event === "connect" && this.socket && this.socket.readyState === WebSocket.OPEN) {
+            callback();
+        }
     }
 
     off(event, callback) {
@@ -50,11 +61,12 @@ class WSWrapper {
     }
 
     emit(event, payload) {
+        const msg = { type: event, payload };
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-            const msg = JSON.stringify({ type: event, payload });
-            this.socket.send(msg);
+            this.socket.send(JSON.stringify(msg));
         } else {
-            console.warn("WS not open, cannot emit", event);
+            console.log("WS not open, queuing message:", event);
+            this.queue.push(msg);
         }
     }
 
@@ -65,8 +77,5 @@ class WSWrapper {
     }
 }
 const socket = new WSWrapper("wss://help-center-backend-1.onrender.com/ws");
-//wss://help-center-backend-1.onrender.com/ws
-//https://help-center-backend-1.onrender.com/api
-//ws://localhost:8090/ws
 
 export default socket;

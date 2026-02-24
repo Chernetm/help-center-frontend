@@ -54,6 +54,7 @@ const SuperAdminDashboard = () => {
           getAdminCases(),
           getCustomers()
         ]);
+        console.log("Admins:", adminsData);
         setAdmins(adminsData);
         setCustomers(customersData);
         const uniqueDepartments = [

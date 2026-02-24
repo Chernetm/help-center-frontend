@@ -10,13 +10,18 @@ export const createCase = async (caseData) => {
     return response.data;
 };
 
-export const getAgentTickets = async () => {
-    const response = await client.get('/admin/tickets');
+export const getAgentTickets = async (limit = 10, offset = 0) => {
+    const response = await client.get(`/admin/tickets?limit=${limit}&offset=${offset}`);
     return response.data;
 };
 
-export const getCustomerTickets = async () => {
-    const response = await client.get(`/customer/tickets`);
+export const getCustomerTickets = async (limit = 10, offset = 0) => {
+    const response = await client.get(`/customer/tickets?limit=${limit}&offset=${offset}`);
+    return response.data;
+};
+
+export const getTicket = async (ticketId, role = 'customer') => {
+    const response = await client.get(`/${role}/tickets/${ticketId}`);
     return response.data;
 };
 

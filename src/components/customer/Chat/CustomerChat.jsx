@@ -9,7 +9,8 @@ import {
     rateTicket,
     createTicket,
     sendMessage as apiSendMessage,
-    markMessagesAsRead
+    markMessagesAsRead,
+    getTicket
 } from '../../../api/cases';
 
 import TicketList from './TicketList';
@@ -23,11 +24,16 @@ export default function CustomerChat() {
     const [cases, setCases] = useState([]);
     const [selectedTicket, setSelectedTicket] = useState(null);
     const selectedTicketRef = React.useRef(null);
+    const ticketsRef = React.useRef([]);
 
-    // Update ref whenever selectedTicket changes
+    // Update refs whenever state changes
     useEffect(() => {
         selectedTicketRef.current = selectedTicket;
     }, [selectedTicket]);
+
+    useEffect(() => {
+        ticketsRef.current = tickets;
+    }, [tickets]);
 
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
@@ -38,12 +44,19 @@ export default function CustomerChat() {
     const [userInfo, setUserInfo] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+    const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024);
     const [showChatOnMobile, setShowChatOnMobile] = useState(false);
+
+    // ⭐ Lazy Loading
+    const TICKET_LIMIT = 10;
+    const [offset, setOffset] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
     useEffect(() => {
         const handleResize = () => {
-            const mobile = window.innerWidth < 768;
+            const mobile = window.innerWidth < 1024;
             setIsMobileView(mobile);
             // If we switch to desktop, reset mobile specific state
             if (!mobile) setShowChatOnMobile(false);
@@ -54,42 +67,72 @@ export default function CustomerChat() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     // ---------------- INIT ----------------
-    useEffect(() => {
-        const init = async () => {
-            try {
-                const token = localStorage.getItem("customerToken");
-                if (!token) return;
+    const init = async () => {
+        try {
+            const token = localStorage.getItem("customerToken");
+            if (!token) return;
 
-                const decoded = jwtDecode(token);
-                setUserInfo(decoded);
+            const decoded = jwtDecode(token);
+            setUserInfo(decoded);
 
-                const [ticketsData, casesData] = await Promise.all([
-                    getCustomerTickets(),
-                    getCases()
-                ]);
-                console.log("Tickets Data:", ticketsData);
-                console.log("Cases Data:", casesData);
+            const casesData = await getCases();
+            setCases(casesData || []);
 
-                // Calculate unread counts
-                const processedTickets = (ticketsData || []).map(ticket => ({
-                    ...ticket,
-                    unreadCount: ticket.chats?.filter(c => c.senderType !== 'customer' && !c.isRead).length || 0
-                }));
+            // Login to WebSocket personal room
+            socket.emit("customerLogin", token);
 
-                setTickets(processedTickets);
-                setCases(casesData || []);
+            // Initial ticket load
+            await fetchTickets(true);
+        } catch (err) {
+            console.error("Init load failed:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-                // Join all ticket rooms to receive real-time unread count updates
-                processedTickets.forEach(t => {
-                    socket.emit("joinTicket", t.id);
-                });
-            } catch (err) {
-                console.error("Init load failed:", err);
-            } finally {
-                setIsLoading(false);
+    const fetchTickets = async (isInitial = false) => {
+        try {
+            const currentOffset = isInitial ? 0 : offset;
+            const ticketsData = await getCustomerTickets(TICKET_LIMIT, currentOffset);
+
+            console.log("Tickets Data:", ticketsData);
+
+            // Calculate unread counts and process
+            const processedTickets = (ticketsData || []).map(ticket => ({
+                ...ticket,
+                unreadCount: ticket.chats?.filter(c => c.senderType !== 'customer' && !c.isRead).length || 0
+            }));
+
+            setTickets(prev => isInitial ? processedTickets : [...prev, ...processedTickets]);
+
+            if (processedTickets.length < TICKET_LIMIT) {
+                setHasMore(false);
             }
-        };
 
+            if (isInitial) {
+                setOffset(processedTickets.length);
+            } else {
+                setOffset(prev => prev + processedTickets.length);
+            }
+
+            // Join rooms
+            processedTickets.forEach(t => {
+                socket.emit("joinTicket", t.id);
+            });
+
+        } catch (err) {
+            console.error("Failed to fetch tickets:", err);
+        }
+    };
+
+    const handleLoadMore = async () => {
+        if (isFetchingMore || !hasMore) return;
+        setIsFetchingMore(true);
+        await fetchTickets(false);
+        setIsFetchingMore(false);
+    };
+
+    useEffect(() => {
         init();
     }, []);
 
@@ -145,16 +188,11 @@ export default function CustomerChat() {
         console.log("CustomerChat: Emitted joinTicket for", selectedTicket.id);
     }, [selectedTicket?.id]);
 
-    const ticketsRef = React.useRef([]);
-    useEffect(() => {
-        ticketsRef.current = tickets;
-    }, [tickets]);
-
     // ---------------- SOCKET LISTENERS ----------------
     useEffect(() => {
         if (!socket) return;
 
-        const handleNewMessage = (chat) => {
+        const handleNewMessage = async (chat) => {
             console.log("CustomerChat: Received newMessage", chat);
             const currentSelected = selectedTicketRef.current;
 
@@ -177,19 +215,42 @@ export default function CustomerChat() {
                 }
             }
 
-            // Update ticket list (unread count / last message)
-            setTickets(prev => prev.map(t => {
-                if (Number(t.id) === Number(chat.ticketId)) {
-                    const isSelected = currentSelected && Number(currentSelected.id) === Number(chat.ticketId);
-                    return {
-                        ...t,
-                        chats: [...(t.chats || []), chat],
-                        unreadCount: isSelected ? 0 : (t.unreadCount || 0) + 1,
+            // Update ticket list (unread count / last message) & Reorder
+            setTickets(prev => {
+                const ticketIndex = prev.findIndex(t => Number(t.id) === Number(chat.ticketId));
+                const isSelected = currentSelected && Number(currentSelected.id) === Number(chat.ticketId);
+
+                if (ticketIndex !== -1) {
+                    // Update existing and move to top
+                    const updatedTicket = {
+                        ...prev[ticketIndex],
+                        chats: [...(prev[ticketIndex].chats || []), chat],
+                        unreadCount: isSelected ? 0 : (prev[ticketIndex].unreadCount || 0) + 1,
                         updatedAt: chat.createdAt
                     };
+                    const newTickets = [...prev];
+                    newTickets.splice(ticketIndex, 1);
+                    return [updatedTicket, ...newTickets];
+                } else {
+                    // Ticket not in list (possibly on another page), fetch it
+                    getTicket(chat.ticketId, 'customer').then(ticket => {
+                        if (ticket) {
+                            const processedTicket = {
+                                ...ticket,
+                                unreadCount: 1, // It's a new message for a non-loaded ticket
+                                updatedAt: chat.createdAt
+                            };
+                            setTickets(current => {
+                                if (current.find(t => Number(t.id) === Number(ticket.id))) return current;
+                                return [processedTicket, ...current];
+                            });
+                            // Also join this ticket's room just in case (though we should be in it via personal room)
+                            socket.emit("joinTicket", ticket.id);
+                        }
+                    }).catch(err => console.error("Failed to fetch missing ticket:", err));
+                    return prev;
                 }
-                return t;
-            }));
+            });
         };
 
         const handleMessagesRead = ({ ticketId, readBy }) => {
@@ -225,7 +286,11 @@ export default function CustomerChat() {
 
         const handleConnect = () => {
             console.log("CustomerChat: Socket connected/reconnected");
-            // Re-join all ticket rooms
+            const token = localStorage.getItem("customerToken");
+            if (token) {
+                socket.emit("customerLogin", token);
+            }
+            // Re-join all ticket rooms for active tickets in view
             ticketsRef.current.forEach(t => {
                 socket.emit("joinTicket", t.id);
             });
@@ -259,6 +324,7 @@ export default function CustomerChat() {
 
     // ---------------- CREATE TICKET ----------------
     const handleCreateTicket = async (caseId) => {
+        setIsCreatingTicket(true);
         try {
             const caseObj = cases.find(c => c.id === caseId);
 
@@ -277,10 +343,14 @@ export default function CustomerChat() {
                 return [newTicket, ...prev];
             });
             setSelectedTicket(newTicket);
+            setIsModalOpen(false); // Close on success
 
         } catch (err) {
             console.error("Create ticket failed:", err);
-            alert("Could not create ticket");
+            const errMsg = err?.response?.data?.error || "Could not create ticket. Please try again later.";
+            alert(errMsg);
+        } finally {
+            setIsCreatingTicket(false);
         }
     };
 
@@ -381,6 +451,9 @@ export default function CustomerChat() {
                                 isLoading={isLoading}
                                 onOpenNewTicket={() => setIsModalOpen(true)}
                                 isMobileView={true}
+                                onLoadMore={handleLoadMore}
+                                hasMore={hasMore}
+                                isFetchingMore={isFetchingMore}
                             />
                         </motion.div>
                     )}
@@ -411,7 +484,7 @@ export default function CustomerChat() {
                 </AnimatePresence>
             ) : (
                 <div className="flex w-full h-full overflow-hidden">
-                    <div className="w-64 lg:w-80 relative border-r bg-white shrink-0">
+                    <div className="w-80 lg:w-96 relative bg-white shrink-0">
                         <TicketList
                             tickets={tickets}
                             selectedTicket={selectedTicket}
@@ -419,6 +492,9 @@ export default function CustomerChat() {
                             isLoading={isLoading}
                             onOpenNewTicket={() => setIsModalOpen(true)}
                             isMobileView={false}
+                            onLoadMore={handleLoadMore}
+                            hasMore={hasMore}
+                            isFetchingMore={isFetchingMore}
                         />
                     </div>
                     <div className="flex-1 bg-[#E4EBEF]">
@@ -442,6 +518,7 @@ export default function CustomerChat() {
                 onClose={() => setIsModalOpen(false)}
                 cases={cases}
                 onSelectCase={handleCreateTicket}
+                isCreating={isCreatingTicket}
             />
 
         </div>
