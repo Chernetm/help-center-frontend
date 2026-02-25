@@ -128,6 +128,42 @@ export default function AdminChat() {
       });
     };
 
+    const handleMessagesRead = ({ ticketId, readBy }) => {
+      console.log(`📖 Messages read by ${readBy} in ticket ${ticketId}`);
+      const current = selectedTicketRef.current;
+
+      // Update active chat window if customer read our (agent) messages
+      if (readBy === "customer" && current && Number(current.id) === Number(ticketId)) {
+        setMessages(prev =>
+          prev.map(m => m.senderType === "agent" ? { ...m, isRead: true } : m)
+        );
+      }
+
+      // Sync sidebar unread status (handles multi-tab sync)
+      if (readBy === "admin") {
+        setTickets(prev =>
+          prev.map(t => Number(t.id) === Number(ticketId) ? { ...t, unreadCount: 0 } : t)
+        );
+      }
+    };
+
+    const handleTicketAssigned = (newTicket) => {
+      console.log("🎫 New ticket assigned:", newTicket);
+
+      // Add to sidebar
+      setTickets(prev => {
+        const exists = prev.find(t => Number(t.id) === Number(newTicket.id));
+        if (exists) return prev;
+        return [newTicket, ...prev];
+      });
+
+      // Join the ticket room to get subsequent messages
+      socket.emit("joinTicket", newTicket.id);
+
+      // Play sound
+      playSound();
+    };
+
     const handleConnect = () => {
       console.log("🔁 Admin reconnected");
       const token = localStorage.getItem("adminToken");
@@ -138,10 +174,14 @@ export default function AdminChat() {
     };
 
     socket.on("newMessage", handleNewMessage);
+    socket.on("messagesRead", handleMessagesRead);
+    socket.on("ticketAssigned", handleTicketAssigned);
     socket.on("connect", handleConnect);
 
     return () => {
       socket.off("newMessage", handleNewMessage);
+      socket.off("messagesRead", handleMessagesRead);
+      socket.off("ticketAssigned", handleTicketAssigned);
       socket.off("connect", handleConnect);
     };
   }, [agentId]);
