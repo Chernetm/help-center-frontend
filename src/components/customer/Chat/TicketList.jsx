@@ -55,13 +55,6 @@ export default function TicketList({
             {/* Header */}
             <div className="h-16 px-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-20">
                 <h2 className="font-bold text-lg text-gray-800">Messages</h2>
-                <button
-                    onClick={onOpenNewTicket}
-                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
-                    title="Create Ticket"
-                >
-                    <Plus size={24} />
-                </button>
             </div>
 
             {/* List */}
