@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import socket from '../../../socket';
 import {
   getAgentTickets,
@@ -20,11 +21,25 @@ export default function AdminChat() {
   const [rating, setRating] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024);
+  const [showChatOnMobile, setShowChatOnMobile] = useState(false);
+
   const ticketsRef = useRef([]);
   const selectedTicketRef = useRef(null);
 
   useEffect(() => { ticketsRef.current = tickets; }, [tickets]);
   useEffect(() => { selectedTicketRef.current = selectedTicket; }, [selectedTicket]);
+
+  // ---------------- RESPONSIVE ----------------
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobileView(mobile);
+      if (!mobile) setShowChatOnMobile(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // ---------------- AUTH ----------------
   useEffect(() => {
@@ -63,6 +78,8 @@ export default function AdminChat() {
     ));
 
     await markMessagesAsRead(ticket.id, "admin").catch(console.error);
+
+    if (isMobileView) setShowChatOnMobile(true);
 
     if (ticket.status === "closed") {
       const r = await getTicketRating(ticket.id).catch(() => null);
@@ -243,22 +260,68 @@ export default function AdminChat() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-gray-100 overflow-hidden">
-      <TicketList
-        tickets={tickets}
-        selectedTicket={selectedTicket}
-        onSelectTicket={handleSelectTicket}
-        onCloseTicket={handleCloseTicket}
-        isLoading={isLoading}
-      />
+    <div className="flex h-[calc(100vh-64px)] bg-gray-100 overflow-hidden relative">
+      {isMobileView ? (
+        <AnimatePresence mode="wait">
+          {!showChatOnMobile && (
+            <motion.div
+              key="list"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="absolute inset-0 z-10 w-full h-full"
+            >
+              <TicketList
+                tickets={tickets}
+                selectedTicket={selectedTicket}
+                onSelectTicket={handleSelectTicket}
+                onCloseTicket={handleCloseTicket}
+                isLoading={isLoading}
+                isMobileView={true}
+              />
+            </motion.div>
+          )}
 
-      <ChatWindow
-        selectedTicket={selectedTicket}
-        messages={messages}
-        onSendMessage={handleSendMessage}
-        isChatDisabled={selectedTicket?.status === "closed"}
-        rating={rating}
-      />
+          {showChatOnMobile && (
+            <motion.div
+              key="chat"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="absolute inset-0 z-20 w-full h-full bg-[#E4EBEF]"
+            >
+              <ChatWindow
+                selectedTicket={selectedTicket}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                isChatDisabled={selectedTicket?.status === "closed"}
+                rating={rating}
+                isMobile={true}
+                onBack={() => setShowChatOnMobile(false)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      ) : (
+        <div className="flex w-full h-full overflow-hidden">
+          <TicketList
+            tickets={tickets}
+            selectedTicket={selectedTicket}
+            onSelectTicket={handleSelectTicket}
+            onCloseTicket={handleCloseTicket}
+            isLoading={isLoading}
+            isMobileView={false}
+          />
+          <ChatWindow
+            selectedTicket={selectedTicket}
+            messages={messages}
+            onSendMessage={handleSendMessage}
+            isChatDisabled={selectedTicket?.status === "closed"}
+            rating={rating}
+            isMobile={false}
+          />
+        </div>
+      )}
     </div>
   );
 }

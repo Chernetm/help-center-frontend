@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageCircle, CheckCircle } from 'lucide-react';
 import { formatTelegramDate } from '../../../utils/dateUtils';
+import clsx from 'clsx';
 
 export default function TicketList({
     tickets,
@@ -12,6 +13,7 @@ export default function TicketList({
     onLoadMore,
     hasMore,
     isFetchingMore,
+    isMobileView,
     className
 }) {
     const scrollRef = React.useRef(null);
@@ -50,7 +52,11 @@ export default function TicketList({
     };
 
     return (
-        <div className={`w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 h-full flex flex-col ${className}`}>
+        <div className={clsx(
+            "h-full bg-white flex flex-col relative",
+            !isMobileView ? "w-full md:w-80 lg:w-96 border-r border-gray-200" : "w-full",
+            className
+        )}>
 
             {/* Header */}
             <div className="h-16 px-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-20">
@@ -78,12 +84,16 @@ export default function TicketList({
                                 key={ticket.id}
                                 onClick={() => onSelectTicket(ticket)}
                                 whileHover={{ backgroundColor: "#f3f4f6" }}
-                                className={`p-3 rounded-xl cursor-pointer transition-colors flex gap-3 ${isSelected ? "bg-indigo-50" : "bg-white"
-                                    }`}
+                                className={clsx(
+                                    "p-3 rounded-xl cursor-pointer transition-colors flex gap-3",
+                                    isSelected ? "bg-indigo-50" : "bg-white"
+                                )}
                             >
                                 {/* Avatar */}
-                                <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${ticket.isClosed ? 'bg-gray-400' : 'bg-gradient-to-br from-blue-500 to-indigo-600'
-                                    }`}>
+                                <div className={clsx(
+                                    "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg",
+                                    ticket.isClosed ? 'bg-gray-400' : 'bg-gradient-to-br from-indigo-500 to-purple-500'
+                                )}>
                                     {getInitials(ticket.customer?.name)}
                                 </div>
 
@@ -95,7 +105,7 @@ export default function TicketList({
                                         </h3>
                                         {/* Timestamp */}
                                         <div className="flex flex-col items-end ml-2 gap-1">
-                                            <span className={`text-xs whitespace-nowrap ${ticket.unreadCount > 0 ? "text-indigo-500 font-medium" : "text-gray-400"}`}>
+                                            <span className={clsx("text-xs whitespace-nowrap", ticket.unreadCount > 0 ? "text-indigo-500 font-medium" : "text-gray-400")}>
                                                 {formatTelegramDate(lastMsg?.createdAt || ticket.updatedAt)}
                                             </span>
 
