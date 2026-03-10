@@ -33,7 +33,7 @@ export default function Navbar() {
         { name: "Home", path: "/home", icon: Home },
         { name: "About", path: "/about", icon: Info },
         { name: "Contact", path: "/contact", icon: Phone },
-        { name: "Receipt", path: "/order-status", icon: Search },
+        { name: "Receipt", path: "/receipt-lookup", icon: Search },
         { name: "Help Center", path: "/help-center", icon: HelpCircle },
     ];
 

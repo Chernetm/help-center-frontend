@@ -12,6 +12,7 @@ import Contact from "./pages/Contact";
 import OrderForm from "./components/admin/Orders/OrderForm";
 import OrderList from "./components/admin/Orders/OrderList";
 import OrderLookup from "./components/customer/Orders/OrderLookup";
+import ReceiptLookupPage from "./pages/ReceiptLookupPage";
 import ProtectedCustomerRoute from "./components/ProtectedCustomerRoute";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -39,8 +40,8 @@ function App() {
       <Route element={<ProtectedSuperAdminRoute />}>
         <Route path="/admin-register" element={<AdminRegister />} />
         <Route path="/dashboard/super" element={<SuperAdminDashboard />} />
-         <Route path="admin" element={<AdminDashboard />} />
-         <Route path="/dashboard">
+        <Route path="admin" element={<AdminDashboard />} />
+        <Route path="/dashboard">
           <Route index element={<DashboardSelector />} />
           <Route path="admin" element={<AdminDashboard />} />
         </Route>
@@ -52,7 +53,7 @@ function App() {
         <Route path="/case-register" element={<CaseRegister />} />
         <Route path="/admin-orders" element={<OrderList />} />
         <Route path="/admin-orders/new" element={<OrderForm />} />
-        
+
       </Route>
 
 
@@ -61,6 +62,8 @@ function App() {
         <Route path="/help-center" element={<CustomerChat />} />
         <Route path="/order-status" element={<OrderLookup />} />
       </Route>
+
+      <Route path="/receipt-lookup" element={<ReceiptLookupPage />} />
 
       <Route path="/login" element={<Login />} />
 

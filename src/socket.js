@@ -80,7 +80,7 @@ class WSWrapper {
   }
 }
 
-const socket = new WSWrapper("wss://help-center-backend-1.onrender.com/ws");
+const socket = new WSWrapper("ws://localhost:8090/ws");
 // const socket = new WSWrapper("wss://help-center-backend-1.onrender.com/ws");
 
 export default socket;
