@@ -30,7 +30,7 @@ export default function Login() {
             document.cookie = `customerToken=${data.token}; max-age=${maxAge}; path=/`;
             document.cookie = `customerRefreshToken=${data.refreshToken}; max-age=${3600 * 24 * 30}; path=/`; // 30 days for refresh token
 
-            navigate("/order-status"); // Redirect to a dashboard or order status
+            navigate("/receipt-lookup"); // Redirect to a dashboard or order status
         } catch (err) {
             if (err.response?.status === 404 || err.response?.status === 401) {
                 setError("Invalid credentials. Please check your phone or password.");
