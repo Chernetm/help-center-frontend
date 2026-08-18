@@ -9,6 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "engines": {
+  "node": "20.x"
+},
   "dependencies": {
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
